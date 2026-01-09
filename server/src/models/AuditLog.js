@@ -31,7 +31,8 @@ const auditLogSchema = new mongoose.Schema({
       'login_admin',
       'logout_admin',
       'admin_auto_like',
-      'admin_auto_view'
+      'admin_auto_view',
+      'adjust_cultivation_exp'
     ],
     index: true
   },

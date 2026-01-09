@@ -10,6 +10,7 @@
     "dev": "cross-env UV_THREADPOOL_SIZE=16 nodemon src/index.js",
     "dev:prod": "cross-env UV_THREADPOOL_SIZE=16 NODE_ENV=production nodemon src/index.js",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --runInBand",
+    "verify:battle": "node src/scripts/verifyBattleMechanics.js",
     "build": "echo 'No build step required for Node.js'"
   },
   "dependencies": {

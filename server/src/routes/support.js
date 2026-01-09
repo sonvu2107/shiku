@@ -12,7 +12,7 @@
 
 import express from "express";
 import mongoose from "mongoose";
-import { authRequired, authOptional } from "../middleware/auth.js";
+import { authRequired, authOptional } from "../middleware/jwtSecurity.js";
 
 const router = express.Router();
 

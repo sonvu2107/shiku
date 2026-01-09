@@ -21,7 +21,8 @@ import {
   refreshAccessToken,
   logout,
   refreshTokenLimiter,
-  authRequired
+  authRequired,
+  verifyAccessToken
 } from "../middleware/jwtSecurity.js";
 import {
   authLogger,
@@ -44,6 +45,31 @@ const REFRESH_TOKEN_MAX_AGE =
 
 const accessCookieOptions = buildCookieOptions(ACCESS_TOKEN_MAX_AGE);
 const refreshCookieOptions = buildCookieOptions(REFRESH_TOKEN_MAX_AGE);
+
+const REFRESH_LOG_WINDOW_MS = 60 * 1000;
+const refreshFailLogTimestamps = new Map();
+
+function logRefreshFailure({ reason, status, ip, userId }) {
+  const key = `${ip || "unknown"}:${reason || "unknown"}:${userId || "unknown"}`;
+  const now = Date.now();
+  const lastLoggedAt = refreshFailLogTimestamps.get(key) || 0;
+  if (now - lastLoggedAt < REFRESH_LOG_WINDOW_MS) {
+    return;
+  }
+  refreshFailLogTimestamps.set(key, now);
+
+  if (refreshFailLogTimestamps.size > 1000) {
+    refreshFailLogTimestamps.clear();
+  }
+
+  const userHash = userId
+    ? crypto.createHash("sha256").update(String(userId)).digest("hex").slice(0, 12)
+    : "unknown";
+
+  console.warn(
+    `[AUTH][REFRESH] failed status=${status} reason=${reason || "unknown"} ip=${ip || "unknown"} user=${userHash}`
+  );
+}
 
 /**
  * POST /register - Đăng ký tài khoản mới
@@ -417,72 +443,48 @@ router.post("/login",
  * 
  * Lấy refresh token từ body hoặc cookie, xác thực và tạo access token mới
  */
+
 router.post("/refresh",
   refreshTokenLimiter,
   async (req, res, next) => {
+    let tokenToUse;
     try {
       const { refreshToken } = req.body;
       const cookieRefreshToken = req.cookies?.refreshToken;
-      const tokenToUse = refreshToken || cookieRefreshToken;
+      tokenToUse = refreshToken || cookieRefreshToken;
 
       if (!tokenToUse) {
         return res.status(400).json({
-          error: "Refresh token là bắt buộc",
+          error: "Refresh token l? b?t bu?c",
           code: "MISSING_REFRESH_TOKEN"
         });
       }
 
-      try {
-        const payload = jwt.verify(
-          tokenToUse,
-          process.env.REFRESH_TOKEN_SECRET || process.env.JWT_SECRET
-        );
+      const tokens = await refreshAccessToken(tokenToUse);
 
-        if (payload.type !== 'refresh') {
-          throw new Error("Invalid token type");
-        }
+      res.cookie("accessToken", tokens.accessToken, accessCookieOptions);
+      res.cookie("refreshToken", tokens.refreshToken, refreshCookieOptions);
 
-        const user = await User.findById(payload.id).select("-password");
-        if (!user) {
-          throw new Error("User not found");
-        }
-
-        const newAccessToken = jwt.sign(
-          {
-            id: user._id,
-            type: 'access',
-            role: user.role
-          },
-          process.env.JWT_SECRET,
-          { expiresIn: "15m" }
-        );
-
-        res.cookie("accessToken", newAccessToken, accessCookieOptions);
-
-        res.json({
-          accessToken: newAccessToken,
-          user: {
-            id: user._id,
-            name: user.name,
-            email: user.email,
-            role: user.role
-          }
-        });
-
-      } catch (jwtError) {
-        throw jwtError;
-      }
-
+      res.json({
+        accessToken: tokens.accessToken,
+        user: tokens.user
+      });
     } catch (error) {
+      const decoded = tokenToUse ? jwt.decode(tokenToUse) : null;
+      const userId = decoded && typeof decoded === "object"
+        ? (decoded.id || decoded.userId || decoded._id)
+        : undefined;
+      logRefreshFailure({ reason: error?.message, status: 401, ip: req.ip, userId });
       const isProduction = process.env.NODE_ENV === "production";
       res.status(401).json({
-        error: "Refresh token không hợp lệ",
+        error: "Refresh token kh?ng h?p l?",
         code: "INVALID_REFRESH_TOKEN",
         details: isProduction ? undefined : error.message
       });
     }
   }
 );
+
 
 /**
  * GET /session - Kiểm tra session hiện tại
@@ -508,8 +510,7 @@ router.get("/session",
         return res.json({ authenticated: false });
       }
 
-      // Verify JWT token
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
+        const payload = await verifyAccessToken(token);
       const user = await User.findById(payload.id).select("-password");
 
       if (!user) {

@@ -14,6 +14,7 @@ export function useAdminData() {
   const [onlineUsers, setOnlineUsers] = useState([]);
   const [totalVisitors, setTotalVisitors] = useState(0);
   const [visitorStats, setVisitorStats] = useState(null);
+  const [systemMetrics, setSystemMetrics] = useState(null);
   const [lastUpdate, setLastUpdate] = useState(new Date());
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -134,6 +135,18 @@ export function useAdminData() {
       setVisitorStats(res);
     } catch (e) {
       setError("Không thể tải thống kê người truy cập");
+    }
+  }, []);
+
+  const loadSystemMetrics = useCallback(async () => {
+    try {
+      const res = await api("/api/admin/stats/system-metrics");
+      if (res.success) {
+        setSystemMetrics(res.metrics);
+      }
+    } catch (e) {
+      console.error("Error loading system metrics:", e);
+      // Silent fail - không cần hiển thị error cho metrics
     }
   }, []);
 
@@ -289,6 +302,19 @@ export function useAdminData() {
     };
   }, []);
 
+  // System metrics polling (every 5 seconds when on online tab)
+  useEffect(() => {
+    let interval;
+
+    // Chỉ poll system metrics khi đang xem tab online
+    // Tab detection sẽ được handle ở component level thông qua props
+    // Để tránh coupling, ta expose loadSystemMetrics và component sẽ gọi
+
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, []);
+
   // ==================== CLEAR FUNCTIONS ====================
 
   const clearError = useCallback(() => {
@@ -304,6 +330,7 @@ export function useAdminData() {
     onlineUsers,
     totalVisitors,
     visitorStats,
+    systemMetrics,
     lastUpdate,
     loading,
     error,
@@ -326,6 +353,7 @@ export function useAdminData() {
     loadUsers,
     loadOnlineUsers,
     loadTotalVisitors,
+    loadSystemMetrics,
     loadSingleUser,
     updateSingleUserInState,
     clearError,

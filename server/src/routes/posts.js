@@ -16,7 +16,7 @@ import Comment from "../models/Comment.js";
 import User from "../models/User.js";
 import jwt from "jsonwebtoken";
 import sanitizeHtml from "sanitize-html";
-import { authRequired, authOptional } from "../middleware/auth.js";
+import { authRequired, authOptional } from "../middleware/jwtSecurity.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import { paginate } from "../utils/paginate.js";
 import { withCache, postCache, statsCache, invalidateCache, hashFilter } from "../utils/cache.js";

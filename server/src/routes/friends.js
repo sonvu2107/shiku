@@ -14,7 +14,7 @@ import express from 'express';
 import mongoose from 'mongoose';
 import FriendRequest from '../models/FriendRequest.js';
 import User from '../models/User.js';
-import { authRequired } from '../middleware/auth.js';
+import { authRequired } from '../middleware/jwtSecurity.js';
 import { withCache, userCache, invalidateCacheByPrefix } from '../utils/cache.js';
 import { apiLimiter, friendRequestLimiter } from '../middleware/rateLimit.js';
 import { responseCache, invalidateByPattern } from '../middleware/responseCache.js';

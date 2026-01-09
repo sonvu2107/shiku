@@ -13,7 +13,7 @@
 import express from 'express';
 import mongoose from 'mongoose';
 import User from '../models/User.js';
-import { authRequired } from '../middleware/auth.js';
+import { authRequired } from '../middleware/jwtSecurity.js';
 import { withCache, userCache } from '../utils/cache.js';
 
 const router = express.Router();

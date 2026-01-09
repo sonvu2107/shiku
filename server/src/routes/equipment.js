@@ -1,6 +1,6 @@
 import express from "express";
 import Equipment, { EQUIPMENT_TYPES, WEAPON_SUBTYPES, ARMOR_SUBTYPES, ACCESSORY_SUBTYPES, POWER_ITEM_SUBTYPES, RARITY, ELEMENTAL_TYPES } from "../models/Equipment.js";
-import { authRequired } from "../middleware/auth.js";
+import { authRequired } from "../middleware/jwtSecurity.js";
 import { adminRateLimit, strictAdminRateLimit } from "../middleware/adminSecurity.js";
 import AuditLog from "../models/AuditLog.js";
 import { getClientAgent } from "../utils/clientAgent.js";

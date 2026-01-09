@@ -111,6 +111,19 @@ const LootboxResultModal = memo(({ result, onClose }) => {
                 </>
               )}
               {(() => {
+                // Check if material (id starts with mat_)
+                const isMaterial = result.id?.startsWith('mat_') || result.itemId?.startsWith('mat_');
+                if (isMaterial) {
+                  const matId = result.id || result.itemId;
+                  return (
+                    <img
+                      src={`/assets/materials/${matId}.jpg`}
+                      alt={result.name}
+                      className="w-full h-full object-cover rounded"
+                      onError={(e) => { e.target.style.display = 'none'; }}
+                    />
+                  );
+                }
                 const ItemIcon = getItemIcon(result);
                 return IMAGE_COMPONENTS.includes(ItemIcon) ? (
                   <ItemIcon size={40} />
@@ -1234,8 +1247,8 @@ const InventoryTab = memo(function InventoryTab() {
                     key={qty}
                     onClick={() => setModalQuantity(qty)}
                     className={`px-3 py-1 rounded text-xs font-medium transition-all ${useModal.quantity === qty
-                        ? 'bg-orange-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      ? 'bg-orange-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                       }`}
                   >
                     x{qty}
@@ -1244,8 +1257,8 @@ const InventoryTab = memo(function InventoryTab() {
                 <button
                   onClick={() => setModalQuantity(useModal.item.quantity || 1)}
                   className={`px-3 py-1 rounded text-xs font-medium transition-all ${useModal.quantity === (useModal.item.quantity || 1)
-                      ? 'bg-orange-600 text-white'
-                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                    ? 'bg-orange-600 text-white'
+                    : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                     }`}
                 >
                   Tất cả

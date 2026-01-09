@@ -15,11 +15,46 @@ export const ITEM_TYPES = {
     CONSUMABLE: "consumable",   // Vật phẩm tiêu hao
     PET: "pet",                 // Linh thú
     MOUNT: "mount",             // Linh thú cưỡi
-    TECHNIQUE: "technique"      // Công pháp
+    TECHNIQUE: "technique",      // Công pháp
+    LOOTBOX: "lootbox"          // Rương may mắn (Gacha)
 };
 
 // ==================== SHOP ITEMS ====================
 export const SHOP_ITEMS = [
+    // ==================== RƯƠNG MAY MẮN (LOOTBOX - MONEY SINK) ====================
+    {
+        id: "chest_basic",
+        name: "Rương Nguyên Liệu (Thường)",
+        type: ITEM_TYPES.LOOTBOX,
+        price: 1000,
+        description: "Chứa nguyên liệu Luyện Khí cơ bản (Tier 1-5) và vật phẩm tiêu hao.",
+        rarity: "common",
+        lootboxKey: "chest_basic",
+        buyAndOpen: true,
+        img: "/assets/chest_wood.jpg"
+    },
+    {
+        id: "chest_advanced",
+        name: "Rương Nguyên Liệu (Cao Cấp)",
+        type: ITEM_TYPES.LOOTBOX,
+        price: 5000,
+        description: "Chứa nguyên liệu Luyện Khí cao cấp (Tier 6-10) và đan dược tu luyện.",
+        rarity: "epic",
+        lootboxKey: "chest_advanced",
+        buyAndOpen: true,
+        img: "/assets/chest_gold.jpg"
+    },
+    {
+        id: "chest_master",
+        name: "Rương Thần Bí (Gacha)",
+        type: ITEM_TYPES.LOOTBOX,
+        price: 10000,
+        description: "Cơ hội nhận Công Pháp/Ngoại Trang hiếm. Nếu trùng sẽ đổi thành vật phẩm giá trị.",
+        rarity: "legendary",
+        lootboxKey: "chest_master",
+        buyAndOpen: true,
+        img: "/assets/chest_mythic.jpg"
+    },
     // ==================== DANH HIỆU (TITLE) ====================
     { id: "title_swordsman", name: "Kiếm Khách", type: ITEM_TYPES.TITLE, price: 100, description: "Danh hiệu cho người yêu kiếm thuật", rarity: "common" },
     { id: "title_scholar", name: "Thư Sinh", type: ITEM_TYPES.TITLE, price: 100, description: "Danh hiệu cho người ham học", rarity: "common" },
@@ -72,10 +107,10 @@ export const SHOP_ITEMS = [
     { id: "effect_galaxy", name: "Tinh Hà Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 1200, description: "Hiệu ứng ngân hà huyền bí", rarity: "legendary" },
 
     // ==================== ĐAN DƯỢC (EXP_BOOST) ====================
-    { id: "exp_boost_2x", name: "Tu Luyện Đan (2x)", type: ITEM_TYPES.EXP_BOOST, price: 200, description: "Tăng gấp đôi exp trong 24h", duration: 24, multiplier: 2, rarity: "uncommon" },
-    { id: "exp_boost_3x", name: "Thiên Tài Đan (3x)", type: ITEM_TYPES.EXP_BOOST, price: 500, description: "Tăng gấp 3 exp trong 24h", duration: 24, multiplier: 3, rarity: "rare" },
-    { id: "exp_boost_5x", name: "Thần Đan (5x)", type: ITEM_TYPES.EXP_BOOST, price: 1000, description: "Tăng gấp 5 exp trong 12h", duration: 12, multiplier: 5, rarity: "epic" },
-    { id: "exp_boost_mini", name: "Tiểu Hoàn Đan", type: ITEM_TYPES.EXP_BOOST, price: 50, description: "Tăng 50% exp trong 6h", duration: 6, multiplier: 1.5, rarity: "common" },
+    { id: "exp_boost_2x", name: "Tu Luyện Đan (2x)", type: ITEM_TYPES.EXP_BOOST, price: 200, description: "Tăng gấp đôi exp trong 24h", duration: 24, multiplier: 2, rarity: "uncommon", img: "/assets/danduoc.jpg" },
+    { id: "exp_boost_3x", name: "Thiên Tài Đan (3x)", type: ITEM_TYPES.EXP_BOOST, price: 500, description: "Tăng gấp 3 exp trong 24h", duration: 24, multiplier: 3, rarity: "rare", img: "/assets/danduoc.jpg" },
+    { id: "exp_boost_5x", name: "Thần Đan (5x)", type: ITEM_TYPES.EXP_BOOST, price: 1000, description: "Tăng gấp 5 exp trong 12h", duration: 12, multiplier: 5, rarity: "epic", img: "/assets/danduoc.jpg" },
+    { id: "exp_boost_mini", name: "Tiểu Hoàn Đan", type: ITEM_TYPES.EXP_BOOST, price: 50, description: "Tăng 50% exp trong 6h", duration: 6, multiplier: 1.5, rarity: "common", img: "/assets/danduoc.jpg" },
 
     // ==================== ĐAN DƯỢC ĐỘ KIẾP (BREAKTHROUGH_BOOST) ====================
     { id: "breakthrough_pill_small", name: "Tiểu Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 300, description: "Tăng 10% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 10, img: "/assets/danduoc.jpg", rarity: "uncommon" },
@@ -92,6 +127,7 @@ export const SHOP_ITEMS = [
     { id: "quest_refresh", name: "Nhiệm Vụ Lệnh", type: ITEM_TYPES.CONSUMABLE, price: 150, description: "Làm mới nhiệm vụ hàng ngày", rarity: "uncommon" },
     { id: "streak_protector", name: "Hộ Mệnh Phù", type: ITEM_TYPES.CONSUMABLE, price: 300, description: "Bảo vệ streak đăng nhập 1 lần", rarity: "rare" },
     { id: "weekly_pack", name: "Tuần Lễ Bảo Rương", type: ITEM_TYPES.CONSUMABLE, price: 1000, description: "Mở ra nhận ngẫu nhiên 1 vật phẩm Rare trở lên", rarity: "epic", isLootBox: true, lootBoxConfig: { minRarity: "rare", dropTypes: ["title", "badge", "avatar_frame", "profile_effect", "pet", "mount", "technique"] } },
+    { id: "craft_catalyst_luck", name: "Thiên Địa Tạo Hóa Đan", type: ITEM_TYPES.CONSUMABLE, price: 500, description: "Vật phẩm huyền bí giúp gia tăng 20% (x1.2) cơ hội ra đồ xịn nhất khi luyện khí (có giới hạn)", rarity: "epic", img: "/assets/danduoc.jpg" },
 
     // ==================== GÓI TÂN THỦ (MUA 1 LẦN) ====================
     {
@@ -485,6 +521,129 @@ export const SHOP_ITEMS = [
         stats: { attack: 0.12, criticalRate: 0.12, penetration: 0.08 },
         skill: { name: "Không Chưởng", description: "200% Tấn Công + choáng 2 giây", cooldown: 5 },
         unlockCondition: { type: "dungeon", minFloor: 5 }
+    },
+
+    // ==================== DUNGEON EXCLUSIVE TECHNIQUES (DROP ONLY) ====================
+    // Các công pháp này CHỈ rơi từ boss bí cảnh, KHÔNG MUA ĐƯỢC trong shop
+
+    // === VÂN VŨ CỐC (Easy) - Không rơi công pháp ===
+
+    // === HỎA DIỄM ĐỘNG (Normal) ===
+    {
+        id: "technique_fire_cave_flame_burst",
+        name: "Hỏa Diễm Bạo Phát",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp độc quyền từ Hỏa Diễm Động. Tăng 12% Tấn Công, 8% Xuyên Thấu. Kích hoạt bùng lửa 180% Tấn Công.",
+        rarity: "uncommon",
+        stats: { attack: 0.12, penetration: 0.08 },
+        skill: { name: "Bạo Hỏa", description: "Bùng lửa gây 180% Tấn Công", cooldown: 4 },
+        dungeonDrop: true,
+        dungeonSource: "fire_cave"
+    },
+
+    // === HÀN BĂNG PHONG (Hard) ===
+    {
+        id: "technique_frost_peak_glacial_heart",
+        name: "Băng Tâm Quyết",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp độc quyền từ Hàn Băng Phong. Tăng 15% Phòng Thủ, 10% Kháng Cự. Đóng băng kẻ địch 2 giây.",
+        rarity: "rare",
+        stats: { defense: 0.15, resistance: 0.10 },
+        skill: { name: "Băng Tâm", description: "Đóng băng mục tiêu 2 giây, gây 150% Tấn Công", cooldown: 5 },
+        dungeonDrop: true,
+        dungeonSource: "frost_peak"
+    },
+    {
+        id: "technique_frost_peak_blizzard",
+        name: "Bão Tuyết Thuật",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp độc quyền từ Hàn Băng Phong. Tăng 10% Tốc Độ, 10% Né Tránh. Triệu hồi bão tuyết phạm vi.",
+        rarity: "rare",
+        stats: { speed: 0.10, dodge: 0.10 },
+        skill: { name: "Bão Tuyết", description: "Phạm vi 120% Tấn Công, giảm 30% Tốc Độ địch", cooldown: 6 },
+        dungeonDrop: true,
+        dungeonSource: "frost_peak"
+    },
+
+    // === U MINH THÂM UYÊN (Nightmare) ===
+    {
+        id: "technique_dark_abyss_soul_reaper",
+        name: "Nhiếp Hồn Đại Pháp",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp độc quyền từ U Minh Thâm Uyên. Tăng 18% Tấn Công, 12% Hút Máu. Hấp thu linh hồn để hồi phục.",
+        rarity: "epic",
+        stats: { attack: 0.18, lifesteal: 0.12 },
+        skill: { name: "Nhiếp Hồn", description: "250% Tấn Công, hồi 40% sát thương gây ra", cooldown: 5 },
+        dungeonDrop: true,
+        dungeonSource: "dark_abyss"
+    },
+    {
+        id: "technique_dark_abyss_void_embrace",
+        name: "Hư Vô Ám Mang",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp độc quyền từ U Minh Thâm Uyên. Tăng 15% Né Tránh, 15% Kháng Cự. Dịch chuyển vào bóng tối.",
+        rarity: "epic",
+        stats: { dodge: 0.15, resistance: 0.15 },
+        skill: { name: "Ám Mang", description: "Né tránh hoàn toàn 2 đòn tiếp theo", cooldown: 7 },
+        dungeonDrop: true,
+        dungeonSource: "dark_abyss"
+    },
+
+    // === LONG HUYỆT CẤM ĐỊA (Hell) ===
+    {
+        id: "technique_dragon_nest_dragon_might",
+        name: "Long Uy Chấn Thiên",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp độc quyền từ Long Huyệt Cấm Địa. Tăng 20% Tấn Công, 15% Chí Mạng. Uy áp của rồng.",
+        rarity: "legendary",
+        stats: { attack: 0.20, criticalRate: 0.15 },
+        skill: { name: "Long Uy", description: "300% Tấn Công, giảm 30% Phòng Thủ địch 5 giây", cooldown: 6 },
+        dungeonDrop: true,
+        dungeonSource: "dragon_nest"
+    },
+    {
+        id: "technique_dragon_nest_scales",
+        name: "Long Lân Hộ Thể",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp độc quyền từ Long Huyệt Cấm Địa. Tăng 20% Phòng Thủ, 15% Khí Huyết. Vảy rồng bất hoại.",
+        rarity: "legendary",
+        stats: { defense: 0.20, qiBlood: 0.15 },
+        skill: { name: "Long Lân", description: "Lá chắn 35% Khí Huyết tối đa trong 8 giây", cooldown: 8 },
+        dungeonDrop: true,
+        dungeonSource: "dragon_nest"
+    },
+
+    // === HỖN ĐỘN VỰC (Chaos) ===
+    {
+        id: "technique_chaos_realm_entropy",
+        name: "Hỗn Nguyên Diệt Thế",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp độc quyền từ Hỗn Độn Vực. Tăng 22% mọi chỉ số chiến đấu. Phá hủy trật tự.",
+        rarity: "mythic",
+        stats: { attack: 0.22, defense: 0.22, qiBlood: 0.22, speed: 0.22, criticalRate: 0.15 },
+        skill: { name: "Diệt Thế", description: "400% Tấn Công, bỏ qua 50% Phòng Thủ và Kháng Cự", cooldown: 8 },
+        dungeonDrop: true,
+        dungeonSource: "chaos_realm"
+    },
+    {
+        id: "technique_chaos_realm_primordial",
+        name: "Hồng Mông Sơ Khai",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp độc quyền từ Hỗn Độn Vực. Tăng 25% Hút Máu, 20% Hồi Phục. Nguồn năng lượng nguyên thủy.",
+        rarity: "mythic",
+        stats: { lifesteal: 0.25, regeneration: 0.20, qiBlood: 0.15 },
+        skill: { name: "Hồng Mông", description: "Hồi 40% Khí Huyết và Chân Nguyên, tăng 50% Hút Máu 10 giây", cooldown: 12 },
+        dungeonDrop: true,
+        dungeonSource: "chaos_realm"
     }
 ];
 

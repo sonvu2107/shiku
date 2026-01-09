@@ -277,6 +277,7 @@ const CultivationSchema = new mongoose.Schema({
     comments: { type: Number, default: 0 },
     likes: { type: Number, default: 0 },
     upvotes: { type: Number, default: 0 },
+    practiceSessions: { type: Number, default: 0 }, // Giới hạn nhập định mỗi ngày
     lastReset: { type: Date, default: Date.now }
   },
 
@@ -442,6 +443,29 @@ const CultivationSchema = new mongoose.Schema({
     totalBossesKilled: { type: Number, default: 0 },
     totalDungeonExpEarned: { type: Number, default: 0 },
     totalDungeonSpiritStonesEarned: { type: Number, default: 0 }
+  },
+
+  // ==================== THÁP 100 TẦNG (TOWER) ====================
+  towerProgress: {
+    // Permanent progress
+    highestFloorEver: { type: Number, default: 0, min: 0, max: 100 },
+
+    // Weekly tracking (reset thứ Hai)
+    highestFloorThisWeek: { type: Number, default: 0, min: 0, max: 100 },
+    weeklyContractClaimed: { type: Boolean, default: false },
+    weekKey: { type: String, default: '' },  // ISO: "2026-W02"
+
+    // Daily tracking (reset 00:00 Bangkok)
+    dailyAttemptsUsed: { type: Number, default: 0, min: 0, max: 5 },
+    dayKey: { type: String, default: '' },  // "2026-01-09"
+
+    // Boss verification (for weekly chest)
+    clearedBossFloorsEver: { type: [Number], default: [] },
+    clearedBossFloorsThisWeek: { type: [Number], default: [] },
+
+    // Stats
+    totalClimbs: { type: Number, default: 0 },
+    totalSweeps: { type: Number, default: 0 }
   },
 
   // ==================== GÓI MUA 1 LẦN ====================

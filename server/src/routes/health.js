@@ -110,8 +110,53 @@ router.get('/detailed', authRequired, async (req, res) => {
       redisHealth = { error: e.message };
     }
 
-    // Memory usage
+    // Memory usage (Node.js process)
     const memoryUsage = process.memoryUsage();
+
+    // System memory (total RAM)
+    const totalMemory = os.totalmem();
+    const freeMemory = os.freemem();
+    const usedMemory = totalMemory - freeMemory;
+
+    // CPU information - measure actual usage with snapshot method
+    const cpus = os.cpus();
+    const loadAvg = os.loadavg();
+
+    // Get CPU usage by comparing two snapshots (works on all platforms)
+    const getCPUUsage = () => {
+      return new Promise((resolve) => {
+        const startMeasure = os.cpus();
+
+        setTimeout(() => {
+          const endMeasure = os.cpus();
+          let totalIdle = 0;
+          let totalTick = 0;
+
+          for (let i = 0; i < startMeasure.length; i++) {
+            const start = startMeasure[i].times;
+            const end = endMeasure[i].times;
+
+            const idleDiff = end.idle - start.idle;
+            const totalDiff = (end.user - start.user) + (end.nice - start.nice) +
+              (end.sys - start.sys) + idleDiff + (end.irq - start.irq);
+
+            totalIdle += idleDiff;
+            totalTick += totalDiff;
+          }
+
+          const cpuPercentage = totalTick > 0 ? 100 - (100 * totalIdle / totalTick) : 0;
+          resolve(cpuPercentage);
+        }, 100); // Measure over 100ms
+      });
+    };
+
+    const cpuUsagePercent = await getCPUUsage();
+
+    // Use load average if available (Unix/Linux/Mac), otherwise use measured percentage
+    const isLoadAvgAvailable = loadAvg[0] > 0 || loadAvg[1] > 0 || loadAvg[2] > 0;
+    const cpuUsage = isLoadAvgAvailable
+      ? (loadAvg[0] / cpus.length) * 100
+      : cpuUsagePercent;
 
     res.json({
       status: 'OK',
@@ -124,10 +169,29 @@ router.get('/detailed', authRequired, async (req, res) => {
       version: process.env.npm_package_version || '1.0.0',
       node: process.version,
       memory: {
+        // Node.js process memory
         heapUsed: Math.round(memoryUsage.heapUsed / 1024 / 1024) + ' MB',
         heapTotal: Math.round(memoryUsage.heapTotal / 1024 / 1024) + ' MB',
         rss: Math.round(memoryUsage.rss / 1024 / 1024) + ' MB',
         external: Math.round(memoryUsage.external / 1024 / 1024) + ' MB'
+      },
+      systemMemory: {
+        // System RAM
+        total: (totalMemory / (1024 ** 3)).toFixed(2) + ' GB',
+        used: (usedMemory / (1024 ** 3)).toFixed(2) + ' GB',
+        free: (freeMemory / (1024 ** 3)).toFixed(2) + ' GB',
+        usedPercent: ((usedMemory / totalMemory) * 100).toFixed(1) + '%',
+        freePercent: ((freeMemory / totalMemory) * 100).toFixed(1) + '%'
+      },
+      cpu: {
+        usage: cpuUsage.toFixed(1) + '%',
+        cores: cpus.length,
+        model: cpus[0]?.model || 'Unknown',
+        loadAverage: {
+          '1min': loadAvg[0].toFixed(2),
+          '5min': loadAvg[1].toFixed(2),
+          '15min': loadAvg[2].toFixed(2)
+        }
       },
       database: dbHealth,
       cache: cacheHealth,

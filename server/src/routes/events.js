@@ -13,7 +13,7 @@
 import express from 'express';
 import Event from '../models/Event.js';
 import User from '../models/User.js';
-import { authRequired, authOptional } from '../middleware/auth.js';
+import { authRequired, authOptional } from '../middleware/jwtSecurity.js';
 import { responseCache, invalidateByPattern } from '../middleware/responseCache.js';
 import { eventCreationLimiter } from '../middleware/rateLimit.js';
 

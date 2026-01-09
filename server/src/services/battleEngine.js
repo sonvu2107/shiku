@@ -31,12 +31,42 @@ export function calculateHitChance(accuracy, dodge) {
 export const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], opponentSkills = [], options = {}) => {
     const {
         nghichThienMeta = null, // PK specific damage reduction
-        maxTurns = 50,
-        isDungeon = false
+        maxTurns = 100, // Increased to 100 to reduce draws
+        isDungeon = false,
+        debug = false
     } = options;
 
     const logs = [];
-    console.log('[ENGINE-DEBUG] simulateBattle STARTED - challenger ATK:', challengerStats.attack, 'opponent ATK:', opponentStats.attack);
+    const isDebug = debug || process.env.BATTLE_DEBUG;
+    if (isDebug) {
+        console.log('\n========== BATTLE START ==========');
+        console.log('[INIT] Challenger Stats:', JSON.stringify({
+            atk: challengerStats.attack,
+            def: challengerStats.defense,
+            hp: challengerStats.qiBlood,
+            spd: challengerStats.speed,
+            crit: challengerStats.criticalRate,
+            critDmg: challengerStats.criticalDamage,
+            lifesteal: challengerStats.lifesteal,
+            regen: challengerStats.regeneration,
+            pen: challengerStats.penetration
+        }));
+        console.log('[INIT] Opponent Stats:', JSON.stringify({
+            atk: opponentStats.attack,
+            def: opponentStats.defense,
+            hp: opponentStats.qiBlood,
+            spd: opponentStats.speed,
+            crit: opponentStats.criticalRate,
+            critDmg: opponentStats.criticalDamage,
+            lifesteal: opponentStats.lifesteal,
+            regen: opponentStats.regeneration,
+            pen: opponentStats.penetration
+        }));
+        console.log('[INIT] Skills - Challenger:', challengerSkills.map(s => s.name).join(', ') || 'None');
+        console.log('[INIT] Skills - Opponent:', opponentSkills.map(s => s.name).join(', ') || 'None');
+        console.log('[INIT] First Attacker:', challengerStats.speed >= opponentStats.speed ? 'Challenger' : 'Opponent');
+        console.log('===================================\n');
+    }
 
     // Initialize HP
     let challengerHp = challengerStats.qiBlood;
@@ -76,6 +106,7 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
 
     while (challengerHp > 0 && opponentHp > 0 && turn < maxTurns) {
         turn++;
+        let description = '';
 
         const attacker = currentAttacker === 'challenger' ? challengerStats : opponentStats;
         const defender = currentAttacker === 'challenger' ? opponentStats : challengerStats;
@@ -98,102 +129,6 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
             opponentMana = Math.min(opponentMaxMana, opponentMana + manaRegen);
         }
 
-        // Variable to track current mana for skill check
-        let currentMana = currentAttacker === 'challenger' ? challengerMana : opponentMana;
-
-        // --- SKILL SELECTION PHASE ---
-        let usedSkill = null;
-        let skillDamageBonus = 0;
-        let skillResult = null;
-        let manaConsumed = 0;
-
-        for (const skill of attackerSkills) {
-            const skillId = skill.techniqueId || skill.name;
-            const cost = skill.manaCost !== undefined ? skill.manaCost : 10;
-
-            if (attackerCooldowns[skillId] <= 0 && currentMana >= cost) {
-                usedSkill = skill;
-                manaConsumed = cost;
-                attackerCooldowns[skillId] = skill.cooldown !== undefined ? skill.cooldown : 3;
-
-                // Prepare context for skill execution
-                const attackerContext = {
-                    ...attacker,
-                    maxQiBlood: currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp,
-                    qiBlood: currentAttacker === 'challenger' ? challengerHp : opponentHp,
-                    maxZhenYuan: attackerMaxMana,
-                    zhenYuan: currentMana
-                };
-                const defenderContext = {
-                    ...defender,
-                    maxQiBlood: currentAttacker === 'challenger' ? opponentMaxHp : challengerMaxHp,
-                    qiBlood: currentAttacker === 'challenger' ? opponentHp : challengerHp
-                };
-
-                // Execute skill
-                skillResult = executeSkill(skill, attackerContext, defenderContext);
-
-                // Process immediate skill results
-                skillDamageBonus = skillResult.damage; // Base skill damage
-
-                // Update resources
-                currentMana = Math.max(0, currentMana - manaConsumed);
-                if (skillResult.manaRestore > 0) {
-                    currentMana = Math.min(attackerMaxMana, currentMana + skillResult.manaRestore);
-                }
-
-                // Update attacker HP (Self-heal)
-                if (skillResult.healing > 0) {
-                    if (currentAttacker === 'challenger') {
-                        challengerHp = Math.min(challengerMaxHp, challengerHp + skillResult.healing);
-                    } else {
-                        opponentHp = Math.min(opponentMaxHp, opponentHp + skillResult.healing);
-                    }
-                }
-
-                // Push Buffs/Debuffs
-                if (skillResult.buffs?.length > 0) {
-                    for (const b of skillResult.buffs) {
-                        // Shield gain is event-based: add to pool when buff is created
-                        if (b.type === 'shield' && b.value > 0) {
-                            if (currentAttacker === 'challenger') challengerShield += b.value;
-                            else opponentShield += b.value;
-                        }
-                        // Handle hpCost in buffs (e.g., Nhiên Huyết)
-                        if (b.hpCost && b.hpCost > 0) {
-                            if (currentAttacker === 'challenger') {
-                                challengerHp = Math.max(1, challengerHp - b.hpCost);
-                            } else {
-                                opponentHp = Math.max(1, opponentHp - b.hpCost);
-                            }
-                        }
-                    }
-                    if (currentAttacker === 'challenger') challengerBuffs.push(...skillResult.buffs);
-                    else opponentBuffs.push(...skillResult.buffs);
-                }
-                if (skillResult.debuffs?.length > 0) {
-                    for (const d of skillResult.debuffs) {
-                        // Handle target:'self' - debuff applies to caster, not defender
-                        if (d.target === 'self') {
-                            if (currentAttacker === 'challenger') challengerDebuffs.push(d);
-                            else opponentDebuffs.push(d);
-                        } else {
-                            // Default: debuff applies to opponent
-                            if (currentAttacker === 'challenger') opponentDebuffs.push(d);
-                            else challengerDebuffs.push(d);
-                        }
-                    }
-                }
-
-                break; // Use only one skill per turn
-            }
-        }
-
-        // Sync mana back to main variables
-        if (currentAttacker === 'challenger') challengerMana = currentMana;
-        else opponentMana = currentMana;
-
-
         // --- STATS RECALCULATION PHASE (Buffs/Debuffs) ---
         // Calculate effective stats for each entity INDEPENDENTLY (not tied to whose turn)
         let effectiveChallenger = { ...challengerStats };
@@ -208,6 +143,148 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         // Derive attacker/defender from the independent effective stats
         const effectiveAttacker = currentAttacker === 'challenger' ? effectiveChallenger : effectiveOpponent;
         const effectiveDefender = currentAttacker === 'challenger' ? effectiveOpponent : effectiveChallenger;
+
+        // Variable to track current mana for skill check
+        let currentMana = currentAttacker === 'challenger' ? challengerMana : opponentMana;
+
+        // --- SKILL SELECTION PHASE ---
+        let usedSkill = null;
+        let skillDamageBonus = 0;
+        let skillResult = null;
+        let manaConsumed = 0;
+
+        // Check Silence
+        if (!effectiveAttacker.silenced) {
+            for (const skill of attackerSkills) {
+                const skillId = skill.techniqueId || skill.name;
+                const cost = skill.manaCost !== undefined ? skill.manaCost : 0; // Default 0 for tower mobs
+
+                // Check Cooldown and Mana and Condition (via helper)
+                // Note: We need a temporary 'canUse' check here or reuse the logic
+                const isReady = attackerCooldowns[skillId] <= 0 && currentMana >= cost;
+
+                // Also check conditionals if any
+                let conditionMet = true;
+                if (skill.condition?.hpBelowPct) {
+                    const hpPct = (currentAttacker === 'challenger' ? challengerHp / challengerMaxHp : opponentHp / opponentMaxHp);
+                    if (hpPct >= skill.condition.hpBelowPct) conditionMet = false;
+                }
+
+                if (isReady && conditionMet) {
+                    usedSkill = skill;
+                    manaConsumed = cost;
+                    attackerCooldowns[skillId] = skill.cooldown !== undefined ? skill.cooldown : 3;
+
+                    // Prepare context for skill execution
+                    const attackerContext = {
+                        ...attacker,
+                        maxQiBlood: currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp,
+                        qiBlood: currentAttacker === 'challenger' ? challengerHp : opponentHp,
+                        maxZhenYuan: attackerMaxMana,
+                        zhenYuan: currentMana,
+                        id: currentAttacker // context id
+                    };
+                    const defenderContext = {
+                        ...defender,
+                        maxQiBlood: currentAttacker === 'challenger' ? opponentMaxHp : challengerMaxHp,
+                        qiBlood: currentAttacker === 'challenger' ? opponentHp : challengerHp
+                    };
+
+                    // Execute skill
+                    skillResult = executeSkill(skill, attackerContext, defenderContext);
+
+                    // Process immediate skill results
+                    skillDamageBonus = skillResult.damage || 0;
+
+                    // Update resources (Mana)
+                    currentMana = Math.max(0, currentMana - manaConsumed);
+                    if (skillResult.manaRestore > 0) {
+                        currentMana = Math.min(attackerMaxMana, currentMana + skillResult.manaRestore);
+                    }
+
+                    // Update Attacker HP (Heal)
+                    if (skillResult.healing > 0) {
+                        if (currentAttacker === 'challenger') {
+                            challengerHp = Math.min(challengerMaxHp, challengerHp + skillResult.healing);
+                        } else {
+                            opponentHp = Math.min(opponentMaxHp, opponentHp + skillResult.healing);
+                        }
+                    }
+
+                    // Handle HP Cost (Self Damage)
+                    if (skillResult.hpCost > 0) {
+                        if (currentAttacker === 'challenger') {
+                            challengerHp = Math.max(1, challengerHp - skillResult.hpCost);
+                            description = description ? description : '';
+                            // Add note about sacrifice? Handled in description mainly
+                        } else {
+                            opponentHp = Math.max(1, opponentHp - skillResult.hpCost);
+                        }
+                    }
+
+                    // Handle Dispel (Clear Opponent Buffs)
+                    if (skillResult.dispel) {
+                        if (currentAttacker === 'challenger') {
+                            opponentBuffs = [];
+                            opponentShield = 0; // Clear shield pool
+                        } else {
+                            challengerBuffs = [];
+                            challengerShield = 0; // Clear shield pool
+                        }
+                    }
+
+                    // Push Buffs/Debuffs
+                    if (skillResult.buffs?.length > 0) {
+                        for (const b of skillResult.buffs) {
+                            // Shield gain is event-based: add to pool when buff is created
+                            if (b.type === 'shield' && b.value > 0) {
+                                if (currentAttacker === 'challenger') challengerShield += b.value;
+                                else opponentShield += b.value;
+                            }
+                            // Handle hpCost in buffs (legacy support)
+                            if (b.hpCost && b.hpCost > 0) {
+                                if (currentAttacker === 'challenger') {
+                                    challengerHp = Math.max(1, challengerHp - b.hpCost);
+                                } else {
+                                    opponentHp = Math.max(1, opponentHp - b.hpCost);
+                                }
+                            }
+                        }
+                        if (currentAttacker === 'challenger') challengerBuffs.push(...skillResult.buffs);
+                        else opponentBuffs.push(...skillResult.buffs);
+                    }
+                    if (skillResult.debuffs?.length > 0) {
+                        for (const d of skillResult.debuffs) {
+                            if (d.target === 'self') {
+                                if (currentAttacker === 'challenger') challengerDebuffs.push(d);
+                                else opponentDebuffs.push(d);
+                            } else {
+                                if (currentAttacker === 'challenger') opponentDebuffs.push(d);
+                                else challengerDebuffs.push(d);
+                            }
+                        }
+                    }
+
+                    // Debug: Log skill usage
+                    if (isDebug) {
+                        console.log(`[SKILL] Turn ${turn} ${currentAttacker}: ${skill.name} | Mana: ${currentMana + manaConsumed} -> ${currentMana} | CD: ${skill.cooldown || 3}t`);
+                        if (skillResult.healing > 0) console.log(`  -> Heal: +${skillResult.healing}`);
+                        if (skillResult.damage > 0) console.log(`  -> Bonus Dmg: +${skillResult.damage}`);
+                        if (skillResult.buffs?.length) console.log(`  -> Buffs: ${skillResult.buffs.map(b => b.type).join(', ')}`);
+                        if (skillResult.debuffs?.length) console.log(`  -> Debuffs: ${skillResult.debuffs.map(d => d.type).join(', ')}`);
+                    }
+
+                    break; // Use only one skill per turn
+                }
+            }
+        }
+
+        // Sync mana back to main variables
+        if (currentAttacker === 'challenger') challengerMana = currentMana;
+        else opponentMana = currentMana;
+
+
+
 
         // Helper: Try to trigger fatal protection (revive) for a side
         const tryFatalProtection = (side, reason) => {
@@ -259,7 +336,7 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         let isDodged = false;
         let lifestealHealed = 0;
         let regenerationHealed = 0;
-        let description = '';
+
         let actualDamageDealt = 0;
 
         // Cap variables - declared here so they're accessible in RESULT APPLICATION PHASE
@@ -303,6 +380,12 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                 // Resistance Reduction
                 const resistance = effectiveDefender.resistance || 0;
                 damage = damage * (1 - Math.min(resistance, 50) / 100);
+
+                // SUDDEN DEATH (PvP only): Increase damage after turn 40 to prevent stalemates
+                if (!isDungeon && turn >= 40) {
+                    const frenzyMult = 1 + (turn - 40) * 0.1; // +10% per turn after turn 40
+                    damage = Math.floor(damage * frenzyMult);
+                }
 
                 // 4. Handle Invulnerable
                 if (effectiveDefender.invulnerable) {
@@ -385,7 +468,14 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         if ((effectiveAttacker.regeneration || 0) > 0) {
             const maxHp = currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp;
             const regenCap = isDungeon ? 5 : 3; // PvP: 3%, PvE: 5%
-            const regenRate = Math.min(effectiveAttacker.regeneration, regenCap);
+
+            let effectiveRegen = effectiveAttacker.regeneration;
+            // Sustain Decay (PvP only): Reduce efficiency after turn 40
+            if (!isDungeon && turn >= 40) {
+                effectiveRegen *= Math.max(0.3, 1 - (turn - 40) * 0.07); // Decay by 7% per turn, min 30% efficiency (hits min ~Turn 50)
+            }
+
+            const regenRate = Math.min(effectiveRegen, regenCap);
             regenerationHealed = Math.floor(maxHp * regenRate / 100);
         }
 
@@ -422,9 +512,45 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
 
             // Anti-stalemate: gradually raise PvP cap after turn 12 (keeps anti one-shot early)
             // This approach is safer than multiplying damage directly
+            // Anti-stalemate: gradually raise PvP cap after turn 12
             if (!isDungeon && turn >= 12 && capPercentage !== null) {
-                const extra = Math.floor((turn - 12) / 2) * 0.01; // +1% each 2 turns
-                capPercentage = Math.min(capPercentage + extra, 0.25); // up to 25%
+                const baseCap = 0.18; // Baseline PvP cap
+
+                if (turn >= 40) {
+                    // Sudden Death Phase: Rapidly release cap
+                    // Start from 25% (max mid-game cap), add 4% per turn.
+                    const startCap = 0.25;
+                    const suddenDeathExtra = Math.max(0, turn - 40) * 0.04;
+                    const calculatedCap = startCap + suddenDeathExtra;
+
+                    // Optimization: If cap >= 100%, disable it entirely
+                    if (calculatedCap >= 1.0) {
+                        capPercentage = null;
+                    } else {
+                        capPercentage = calculatedCap;
+                    }
+                } else {
+                    // Mid Game: Slow scaling to 25% (Fix: use baseCap + extra instead of cumulative addition)
+                    const extra = Math.floor((turn - 12) / 2) * 0.01;
+                    capPercentage = Math.min(baseCap + extra, 0.25);
+                }
+
+                if (isDebug && turn >= 38 && (turn % 5 === 0 || turn === 40 || turn >= 95)) {
+                    // Calculate implicit factors for logging
+                    // Regen factor (approximate recreation for display)
+                    let regenFactor = 1.0;
+                    if (turn >= 40) regenFactor = Math.max(0.3, 1 - (turn - 40) * 0.07);
+
+                    // Lifesteal factor (approximate)
+                    let lsFactor = 1.0;
+                    if (turn >= 40) lsFactor = Math.max(0.2, 1 - (turn - 40) * 0.1);
+
+                    // Frenzy Mult 
+                    let frenzyMult = (turn >= 40) ? (1 + (turn - 40) * 0.1) : 1.0;
+
+                    const capDisplay = capPercentage ? `${(capPercentage * 100).toFixed(0)}%` : 'No Cap';
+                    console.log(`[SUDDEN-DEATH] Turn ${turn} | Cap: ${capDisplay} | Frenzy: ${frenzyMult.toFixed(1)}x | Regen: ${regenFactor.toFixed(2)}x | Lifesteal: ${lsFactor.toFixed(2)}x`);
+                }
             }
 
             // FINAL DAMAGE CAP - Applied AFTER all reductions for accurate limiting
@@ -438,28 +564,63 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
             if (currentAttacker === 'challenger') {
                 opponentHp = Math.max(0, opponentHp - incomingDamage);
                 totalDamageByChallenger += incomingDamage;
-                if (turn <= 5) console.log(`[DMG-DEBUG] Turn ${turn} Challenger->Opponent: raw=${damage}, afterCap=${incomingDamage}, opponentHp=${opponentHp}`);
             } else {
                 challengerHp = Math.max(0, challengerHp - incomingDamage);
                 totalDamageByOpponent += incomingDamage;
-                if (turn <= 5) console.log(`[DMG-DEBUG] Turn ${turn} Opponent->Challenger: raw=${damage}, afterCap=${incomingDamage}, challengerHp=${challengerHp}`);
             }
             actualDamageDealt = incomingDamage;
 
+            // Enhanced Debug Logging
+            if (isDebug && (turn <= 10 || turn % 10 === 0 || turn >= 40)) {
+                const target = currentAttacker === 'challenger' ? 'Opponent' : 'Challenger';
+                const targetHp = currentAttacker === 'challenger' ? opponentHp : challengerHp;
+                const targetMaxHp = currentAttacker === 'challenger' ? opponentMaxHp : challengerMaxHp;
+                const hpPct = ((targetHp / targetMaxHp) * 100).toFixed(1);
+                console.log(`[T${turn}] ${currentAttacker.toUpperCase()} -> ${target}: ${actualDamageDealt.toLocaleString()} dmg ${isCritical ? '(CRIT!)' : ''} | ${target} HP: ${targetHp.toLocaleString()} (${hpPct}%)`);
+                if (damage !== actualDamageDealt) {
+                    console.log(`  -> Raw: ${damage.toLocaleString()} | After Cap/DR: ${actualDamageDealt.toLocaleString()}`);
+                }
+            }
+
             // Lifesteal - based on ACTUAL damage dealt (post-reduction/cap)
-            // PvP cap 10% to balance lifesteal builds while preventing stalemates
-            const lsCap = isDungeon ? 100 : 10;
-            const ls = Math.min(effectiveAttacker.lifesteal || 0, lsCap);
-            if (actualDamageDealt > 0 && ls > 0) {
-                lifestealHealed = Math.floor(actualDamageDealt * ls / 100);
+            // Fix: normalize input values to fraction (0-1)
+            const toFrac = (x) => {
+                if (!x) return 0;
+                return x > 1 ? (x / 100) : x;
+            };
+
+            const lsCapFrac = isDungeon ? 0.50 : 0.10; // 50% PvE, 10% PvP
+
+            // Base stat lifesteal
+            const baseLsFrac = toFrac(effectiveAttacker.lifesteal);
+            // Skill immediate lifesteal
+            const skillLsFrac = toFrac(skillResult?.lifestealPct);
+
+            // Total lifesteal fraction, capped
+            let totalLsFrac = Math.min(baseLsFrac + skillLsFrac, lsCapFrac);
+
+            // Sustain Decay (PvP only): Reduce efficiency after turn 40
+            if (!isDungeon && turn >= 40) {
+                const originalFrac = totalLsFrac;
+                totalLsFrac *= Math.max(0.2, 1 - (turn - 40) * 0.1); // Decay by 10% per turn
+            }
+
+            if (actualDamageDealt > 0 && totalLsFrac > 0) {
+                lifestealHealed = Math.floor(actualDamageDealt * totalLsFrac);
             }
         }
 
         // Apply Healing (Lifesteal + Regen)
+        const totalHealing = lifestealHealed + regenerationHealed;
         if (currentAttacker === 'challenger') {
-            challengerHp = Math.min(challengerMaxHp, challengerHp + lifestealHealed + regenerationHealed);
+            challengerHp = Math.min(challengerMaxHp, challengerHp + totalHealing);
         } else {
-            opponentHp = Math.min(opponentMaxHp, opponentHp + lifestealHealed + regenerationHealed);
+            opponentHp = Math.min(opponentMaxHp, opponentHp + totalHealing);
+        }
+
+        // Debug: Log healing
+        if (isDebug && totalHealing > 0 && (turn <= 10 || turn % 10 === 0 || turn >= 40)) {
+            console.log(`  -> Heal: +${totalHealing.toLocaleString()} (LS: ${lifestealHealed}, Regen: ${regenerationHealed})`);
         }
 
         // Check Fatal Protection after direct damage (both sides)
@@ -563,6 +724,12 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         // Cleanup Buffs/Debuffs (Duration--)
         const cleanup = (list) => {
             for (let i = list.length - 1; i >= 0; i--) {
+                // Guard: if duration is invalid/missing, treat as expired
+                if (typeof list[i].duration !== 'number' || isNaN(list[i].duration)) {
+                    list.splice(i, 1);
+                    continue;
+                }
+
                 list[i].duration--;
                 if (list[i].duration <= 0) list.splice(i, 1);
             }
@@ -580,7 +747,7 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
     const bothDead = challengerHp <= 0 && opponentHp <= 0;
     const isDraw = (challengerHp > 0 && opponentHp > 0) || bothDead;
 
-    return {
+    const result = {
         winner: isDraw ? null : (challengerHp > 0 ? 'challenger' : 'opponent'),
         isDraw,
         logs,
@@ -590,6 +757,17 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         finalChallengerHp: challengerHp,
         finalOpponentHp: opponentHp
     };
+
+    // Final Summary Log
+    if (isDebug) {
+        console.log('\n========== BATTLE END ==========');
+        console.log(`[RESULT] Winner: ${result.winner ? result.winner.toUpperCase() : 'DRAW'} after ${turn} turns`);
+        console.log(`[STATS] Challenger: ${challengerHp.toLocaleString()} HP | Total Dmg Dealt: ${totalDamageByChallenger.toLocaleString()}`);
+        console.log(`[STATS] Opponent: ${opponentHp.toLocaleString()} HP | Total Dmg Dealt: ${totalDamageByOpponent.toLocaleString()}`);
+        console.log('=================================\n');
+    }
+
+    return result;
 };
 
 export default {

@@ -15,7 +15,7 @@ import Comment from "../models/Comment.js";
 import Post from "../models/Post.js";
 import Group from "../models/Group.js";
 import User from "../models/User.js";
-import { authRequired, authOptional } from "../middleware/auth.js";
+import { authRequired, authOptional } from "../middleware/jwtSecurity.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import NotificationService from "../services/NotificationService.js";
 import { uploadMultiple, uploadMultipleOptional, uploadToCloudinary, validateFile } from "../middleware/fileUpload.js";

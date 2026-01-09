@@ -533,10 +533,11 @@ const PixelExplorationView = memo(({ dungeon, monster, currentFloor, totalFloors
                     </button>
                     <button
                         onClick={onExit}
-                        className="w-14 sm:w-16 bg-red-900/50 hover:bg-red-900 text-red-200 font-bold font-mono text-xs sm:text-sm border-2 border-red-800 flex items-center justify-center"
+                        className="w-20 sm:w-24 bg-yellow-900/50 hover:bg-yellow-900 text-amber-200 font-bold font-mono text-xs sm:text-sm border-2 border-amber-800 flex items-center justify-center"
                     >
-                        <span>THOÁT</span>
+                        <span>TẠM DỪNG</span>
                     </button>
+
                 </div>
             </div>
         </div>
@@ -556,6 +557,19 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
 
     const logs = battleResult?.logs || [];
 
+    const handleSkip = useCallback(() => {
+        if (!isAnimating || currentLogIndex >= logs.length) return;
+
+        // Fast forward to end
+        setCurrentLogIndex(logs.length);
+        // Use defaults if final values missing (safeguard)
+        setPlayerHp(battleResult.finalPlayerHp ?? 0);
+        setMonsterHp(battleResult.finalMonsterHp ?? 0);
+        setPlayerMana(battleResult.finalPlayerMana ?? 0);
+        setMonsterMana(battleResult.finalMonsterMana ?? 0);
+        setActionText("ĐANG TÍNH KẾT QUẢ...");
+    }, [isAnimating, currentLogIndex, logs.length, battleResult]);
+
     useEffect(() => {
         // Reset completion flag when a new battle starts
         if (isAnimating && currentLogIndex === 0) {
@@ -568,7 +582,8 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                 hasCompletedRef.current = true; // Mark as completed to prevent duplicate calls
                 const won = battleResult?.finalMonsterHp <= 0;
                 setActionText(won ? " CHIẾN THẮNG! " : " THẤT BẠI... ");
-                setTimeout(onComplete, 1500);
+                // Shorten delay if skipped (optional context check could be added, but 800ms is snappy enough)
+                setTimeout(onComplete, 1000);
             }
             return;
         }
@@ -585,16 +600,16 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
                 setMonsterHp(log.monsterHpAfter);
                 const skillText = log.skillUsed ? `【${log.skillUsed}】` : '';
                 const manaText = log.manaConsumed ? ` (-${log.manaConsumed} CHÂN NGUYÊN)` : '';
-                setActionText(` ${skillText} Bạn tấn công gây ${formatNumber(log.damage)} sát thương!${log.isCritical ? 'CHÍ MẠNG!' : ''}${manaText}`);
+                setActionText(` ${skillText} Đạo hữu xuất chiêu, gây ${formatNumber(log.damage)} thương tổn!${log.isCritical ? ' CHÍ MẠNG!' : ''}${manaText}`);
                 setHitEffect('monster');
             } else if (log.attacker === 'monster' && !log.isDodged) {
                 setPlayerHp(log.playerHpAfter);
                 const skillText = log.skillUsed ? `【${log.skillUsed}】` : '';
                 const manaText = log.manaConsumed ? ` (-${log.manaConsumed} CHÂN NGUYÊN)` : '';
-                setActionText(` ${skillText} ${monster?.name} phản công gây ${formatNumber(log.damage)} sát thương!${manaText}`);
+                setActionText(` ${skillText} ${monster?.name} phản kích, gây ${formatNumber(log.damage)} thương tổn!${manaText}`);
                 setHitEffect('player');
             } else {
-                setActionText(` ${log.attacker === 'player' ? 'Địch' : 'Bạn'} đã né thành công!`);
+                setActionText(` ${log.attacker === 'player' ? 'Địch' : 'Đạo hữu'} đã thi triển thân pháp, tránh né thành công!`);
             }
             setTimeout(() => setHitEffect(null), 300);
             setCurrentLogIndex(prev => prev + 1);
@@ -604,7 +619,16 @@ const PixelBattleView = memo(({ monster, battleResult, onComplete, isAnimating, 
     }, [currentLogIndex, isAnimating, logs, onComplete, monster, battleResult]);
 
     return (
-        <div className={`w-full max-w-4xl mx-auto bg-[#202028] ${pixelBorder} overflow-hidden p-3 sm:p-6 font-mono`}>
+        <div className={`w-full max-w-4xl mx-auto bg-[#202028] ${pixelBorder} overflow-hidden p-3 sm:p-6 font-mono relative`}>
+            {/* Skip Button */}
+            {isAnimating && currentLogIndex < logs.length && (
+                <button
+                    onClick={handleSkip}
+                    className="absolute top-2 right-2 z-50 bg-slate-800 hover:bg-slate-700 text-white font-bold font-mono py-1.5 px-3 text-[10px] sm:text-xs border-2 border-white/50 active:translate-y-0.5 transition-all opacity-80 hover:opacity-100 flex items-center gap-1"
+                >
+                    <span>BỎ QUA</span>
+                </button>
+            )}
             {/* Battle Scene */}
             <div className="relative h-48 sm:h-64 bg-slate-800 border-4 border-slate-900 mb-3 sm:mb-4 overflow-hidden">
                 {/* Background Pattern */}
@@ -1207,7 +1231,14 @@ const DungeonTab = memo(function DungeonTab() {
         }, 500);
     }, [loadDungeons, refresh, activeDungeon]);
 
-    // Exit dungeon early
+    // Pause dungeon (Local view change only)
+    const handlePauseDungeon = useCallback(() => {
+        setView('list');
+        setActiveDungeon(null);
+        loadDungeons(); // Refresh list to show "Tiếp Tục" status
+    }, [loadDungeons]);
+
+    // Exit dungeon early (Claim & Leave)
     const handleExitDungeon = useCallback(async () => {
         if (!activeDungeon) return;
 
@@ -1302,7 +1333,7 @@ const DungeonTab = memo(function DungeonTab() {
                                 currentFloor={currentFloor}
                                 totalFloors={totalFloors}
                                 onStartBattle={handleStartBattle}
-                                onExit={handleExitDungeon}
+                                onExit={handlePauseDungeon}
                                 onOpenInventory={async () => {
                                     // Fetch latest materials directly without causing full refresh
                                     try {

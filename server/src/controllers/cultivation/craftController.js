@@ -8,19 +8,26 @@ import Cultivation from '../../models/Cultivation.js';
 import Equipment from '../../models/Equipment.js';
 import {
     previewCraft,
+    executeCraft,
     CRAFTABLE_EQUIPMENT_TYPES,
-    getProbabilityTable,
+    getCraftTableKey,
     getDominantElement,
-    executeCraftWithRarity
+    getHighestRarity
 } from '../../services/craftService.js';
 import { saveWithRetry } from '../../utils/dbUtils.js';
 import { invalidateCultivationCache } from './coreController.js';
 import {
-    CRAFT_PROBABILITIES_BPS,
-    rollRarityBPS,
-    applyPityBPS,
     getPityConfig,
-    validateBPSTable
+    calculateWeightedBPSTable,
+    validateBPSTable,
+    applyBonusBPS,
+    applyPityBPS, // Still used for logging context or unused?
+    // Actually, controller now delegates logic to executeCraft.
+    // But I kept some logic like calculating Pity Bonus (which uses incrementPerFail from config).
+    // Let's keep getPityConfig.
+    // calculateWeightedBPSTable is used for validation?
+    // Check code: const baseTable = calculateWeightedBPSTable(selectedMaterials); -> YES used.
+    RARITY_ORDER
 } from '../../services/craftService_bps.js';
 
 // ==================== CRAFT LOG SCHEMA ====================
@@ -141,7 +148,7 @@ export const previewCraftResult = async (req, res, next) => {
             });
         }
 
-        const preview = previewCraft(selectedMaterials);
+        const preview = previewCraft(selectedMaterials, req.body.useCatalyst);
 
         res.json({
             success: true,
@@ -163,301 +170,141 @@ export const executeCrafting = async (req, res, next) => {
 
         // Validate input
         if (!materialIds || !Array.isArray(materialIds) || materialIds.length < 3) {
-            return res.status(400).json({
-                success: false,
-                message: 'Linh khí bất túc, tối thiểu cần 3 nguyên liệu để luyện thành pháp khí'
-            });
+            return res.status(400).json({ success: false, message: 'Linh khí bất túc, tối thiểu cần 3 nguyên liệu' });
         }
-
         if (!targetType || !targetSubtype) {
-            return res.status(400).json({
-                success: false,
-                message: 'Chưa chọn hình thái pháp khí cần luyện'
-            });
+            return res.status(400).json({ success: false, message: 'Chưa chọn hình thái pháp khí' });
         }
 
-        // Get user's cultivation with materials
         const cultivation = await Cultivation.findOne({ user: userId });
+        if (!cultivation) return res.status(404).json({ success: false, message: 'Chưa nhập môn tu tiên' });
 
-        if (!cultivation) {
-            return res.status(404).json({
-                success: false,
-                message: 'Tu vi chưa đủ, chưa thể nhập môn luyện khí chi đạo'
-            });
-        }
-
-        // Find and validate materials
         const selectedMaterials = [];
-        const consumeList = []; // Track what to consume
-
+        const consumeList = [];
         for (const id of materialIds) {
-            const matIndex = cultivation.materials.findIndex(m =>
-                `${m.templateId}_${m.rarity}` === id && m.qty > 0
-            );
-
-            if (matIndex === -1) {
-                return res.status(400).json({
-                    success: false,
-                    message: `Nguyên liệu đã tiêu tán hoặc không tồn tại trong kho báu`
-                });
-            }
+            const matIndex = cultivation.materials.findIndex(m => `${m.templateId}_${m.rarity}` === id && m.qty > 0);
+            if (matIndex === -1) return res.status(400).json({ success: false, message: 'Nguyên liệu không tồn tại' });
 
             const mat = cultivation.materials[matIndex];
+            const existing = consumeList.find(c => c.index === matIndex);
+            if (existing && mat.qty <= existing.qty) return res.status(400).json({ success: false, message: 'Nguyên liệu không đủ' });
 
-            // Check if same material already selected (need multiple qty)
-            const existingConsume = consumeList.find(c => c.index === matIndex);
-            if (existingConsume) {
-                if (mat.qty <= existingConsume.qty) {
-                    return res.status(400).json({
-                        success: false,
-                        message: `${mat.name} nguyên liệu đã cạn kiệt, không đủ số lượng`
-                    });
-                }
-                existingConsume.qty += 1;
-            } else {
-                consumeList.push({ index: matIndex, qty: 1 });
-            }
-
+            existing ? existing.qty++ : consumeList.push({ index: matIndex, qty: 1 });
             selectedMaterials.push({
-                templateId: mat.templateId,
-                name: mat.name,
-                rarity: mat.rarity,
-                tier: mat.tier,
-                element: mat.element
+                templateId: mat.templateId, name: mat.name, rarity: mat.rarity, tier: mat.tier, element: mat.element
             });
         }
-
-        // Get tier from materials
         const tier = selectedMaterials[0].tier;
 
-        // GUARD: Ensure Mongoose document (not lean/cache)
-        if (!cultivation || typeof cultivation.get !== 'function' || typeof cultivation.set !== 'function') {
-            return res.status(500).json({
-                success: false,
-                message: 'Hệ thống lỗi: cultivation document không hợp lệ'
-            });
-        }
-
-        // === BPS PITY SYSTEM ===
-        // Whitelist: only epic and legendary have pity
+        // Pity & Catalyst Setup
         const PITY_KEYS = new Set(['epic', 'legendary']);
+        if (!cultivation.craftPity) cultivation.craftPity = { epic: 0, legendary: 0 };
 
-        // Initialize craftPity if not exists (for old users before migration)
-        if (!cultivation.craftPity) {
-            cultivation.craftPity = { epic: 0, legendary: 0 };
-        }
-
-        // 1. Get probability table
-        const tableKey = getProbabilityTable(selectedMaterials);
-        const baseTable = CRAFT_PROBABILITIES_BPS[tableKey];
-        if (!baseTable) {
-            return res.status(500).json({
-                success: false,
-                message: `Hệ thống lỗi: bảng xác suất không hợp lệ (${tableKey})`
-            });
-        }
-
-        // Dev-only validation with try/catch
-        if (process.env.NODE_ENV !== 'production') {
-            try {
-                validateBPSTable(baseTable, tableKey);
-            } catch (e) {
-                return res.status(500).json({
-                    success: false,
-                    message: `BPS table invalid: ${e.message}`
-                });
-            }
-        }
-
-        let bpsTable = baseTable;
-
-        // 2. Apply pity (if applicable)
+        const tableKey = getCraftTableKey(selectedMaterials);
         const pityConfig = getPityConfig(tableKey);
+
+        // Calculate Pity Bonus
+        let pityBonusBPS = 0;
         let currentPity = 0;
         if (pityConfig && PITY_KEYS.has(tableKey)) {
-            const pityPath = `craftPity.${tableKey}`;
-            const currentPityRaw = cultivation.get(pityPath) ?? 0;
-            currentPity = Math.max(0, currentPityRaw); // Clamp negative
-
-            const bonusBPS = Math.min(
-                currentPity * pityConfig.incrementPerFail,
-                pityConfig.maxBonus
-            );
-
-            if (bonusBPS > 0) {
-                bpsTable = applyPityBPS(
-                    bpsTable,
-                    pityConfig.targetRarity,
-                    bonusBPS,
-                    pityConfig.takeFrom
-                );
-
-                if (process.env.NODE_ENV !== 'production') {
-                    console.log(`[Craft] ${userId.toString().slice(-6)} pity: ${tableKey} ${currentPity} -> +${bonusBPS}bps`);
-                }
-            }
+            currentPity = Math.max(0, cultivation.get(`craftPity.${tableKey}`) || 0);
+            pityBonusBPS = Math.min(currentPity * pityConfig.incrementPerFail, pityConfig.maxBonus);
         }
 
-        // 3. Roll rarity
-        const resultRarity = rollRarityBPS(bpsTable);
+        // Check Catalyst
+        let useCatalyst = false;
+        if (req.body.useCatalyst) {
+            const catIdx = cultivation.inventory?.findIndex(i => i.itemId === 'craft_catalyst_luck' && i.quantity > 0);
+            if (catIdx === -1 || catIdx === undefined) return res.status(400).json({ success: false, message: 'Không có Tạo Hóa Đan' });
 
-        // 4. Validate element before craft
-        const dominantElement = getDominantElement(selectedMaterials);
-        if (!dominantElement) {
-            return res.status(400).json({
-                success: false,
-                message: 'Không xác định được hệ nguyên tố từ nguyên liệu'
-            });
+            cultivation.inventory[catIdx].quantity -= 1;
+            if (cultivation.inventory[catIdx].quantity <= 0) cultivation.inventory.splice(catIdx, 1);
+            useCatalyst = true;
         }
 
-        // 5. Execute craft with BPS rarity
-        const craftResult = executeCraftWithRarity(
+        // EXECUTE CRAFT via SAFE WRAPPER
+        const craftResult = executeCraft(
             selectedMaterials,
             targetType,
             targetSubtype,
             tier,
-            resultRarity,
-            dominantElement,
-            tableKey
+            { useCatalyst, tableKey, pityBonusBPS }
         );
 
-        // CRITICAL: Only proceed if craft succeeded
-        if (!craftResult?.success) {
-            return res.status(400).json({
-                success: false,
-                message: craftResult?.error || 'Luyện khí thất bại'
-            });
+        if (!craftResult.success) {
+            return res.status(400).json({ success: false, message: craftResult.error });
         }
 
-        // 6. Update pity ONLY after craft success
-        if (pityConfig && PITY_KEYS.has(tableKey)) {
-            const pityPath = `craftPity.${tableKey}`;
+        // Pity Update
+        const resultRarity = craftResult.craftInfo.resultRarity;
+        const usedTableKey = craftResult.craftInfo.probTableUsed; // Should allow confirming which pities to update
 
+        if (pityConfig && PITY_KEYS.has(usedTableKey)) {
+            const pityPath = `craftPity.${usedTableKey}`;
             if (resultRarity === pityConfig.targetRarity) {
                 cultivation.set(pityPath, 0);
-                cultivation.markModified('craftPity'); // Force Mongoose to track change
-                if (process.env.NODE_ENV !== 'production') {
-                    console.log(`[Craft] ${userId.toString().slice(-6)} pity RESET: ${tableKey}`);
-                }
+                if (process.env.NODE_ENV !== 'production') console.log(`[Craft] Pity RESET ${usedTableKey}`);
             } else {
                 cultivation.set(pityPath, currentPity + 1);
-                cultivation.markModified('craftPity'); // Force Mongoose to track change
-                if (process.env.NODE_ENV !== 'production') {
-                    console.log(`[Craft] ${userId.toString().slice(-6)} pity UP: ${tableKey} ${currentPity} -> ${currentPity + 1}`);
-                }
+                if (process.env.NODE_ENV !== 'production') console.log(`[Craft] Pity UP ${usedTableKey}`);
             }
+            cultivation.markModified('craftPity');
         }
 
-        // Consume materials
-        for (const consume of consumeList) {
-            cultivation.materials[consume.index].qty -= consume.qty;
-        }
-
-        // Remove materials with 0 qty
+        // Consume Materials
+        for (const consume of consumeList) cultivation.materials[consume.index].qty -= consume.qty;
         cultivation.materials = cultivation.materials.filter(m => m.qty > 0);
 
-        // Create equipment in database
-        const newEquipment = new Equipment({
-            name: craftResult.equipment.name,
-            type: craftResult.equipment.type,
-            subtype: craftResult.equipment.subtype,
-            slot: craftResult.equipment.slot,
-            rarity: craftResult.equipment.rarity,
-            level_required: tier,
-            realm_required: craftResult.equipment.realmRequired,
-            tier: tier,
-            element: craftResult.equipment.element,
+        // Save Equipment
+        const newEq = new Equipment({
+            name: craftResult.equipment.name, type: craftResult.equipment.type, subtype: craftResult.equipment.subtype,
+            slot: craftResult.equipment.slot, rarity: resultRarity, level_required: tier, realm_required: tier,
+            tier: tier, element: craftResult.equipment.element,
             stats: {
-                attack: craftResult.equipment.stats.attack || 0,
-                defense: craftResult.equipment.stats.defense || 0,
-                hp: craftResult.equipment.stats.hp || 0, // Using standard 'hp' key
-                zhenYuan: craftResult.equipment.stats.zhenYuan || 0,
-                crit_rate: craftResult.equipment.stats.crit_rate || 0, // Already 0-1
-                crit_damage: craftResult.equipment.stats.crit_damage || 0, // Already 0-1
-                penetration: craftResult.equipment.stats.penetration || 0,
-                speed: craftResult.equipment.stats.speed || 0,
-                evasion: (craftResult.equipment.stats.dodge || 0) / 100, // Legacy key 'dodge' is 0-100, divide to get 0-1
-                hit_rate: (craftResult.equipment.stats.accuracy || 0) / 100, // Legacy key 'accuracy' is 0-100
-                resistance: craftResult.equipment.stats.resistance || 0,
-                lifesteal: (craftResult.equipment.stats.lifesteal || 0) / 100 // Legacy key 'lifesteal' is 0-100? No, check craftService
+                ...craftResult.equipment.stats, hp: craftResult.equipment.stats.hp || 0,
+                evasion: (craftResult.equipment.stats.dodge || 0) / 100,
+                hit_rate: (craftResult.equipment.stats.accuracy || 0) / 100,
+                lifesteal: (craftResult.equipment.stats.lifesteal || 0) / 100
             },
             modifiers: craftResult.equipment.modifiers || [],
             durability: craftResult.equipment.durability,
-            special_effect: craftResult.equipment.element ?
-                `Ngũ Hành: ${craftResult.equipment.element.toUpperCase()}` : null,
-            lifesteal: (craftResult.equipment.stats.lifesteal || 0) / 100,
-            energy_regen: craftResult.equipment.stats.regeneration || 0,
-            description: `Dùng ${selectedMaterials.length} linh vật cấp ${tier} tế luyện, linh khí sung túc`,
-            created_by: userId,
-            is_active: true
+            special_effect: craftResult.equipment.element ? `Ngũ Hành: ${craftResult.equipment.element.toUpperCase()}` : null,
+            description: `Dùng ${selectedMaterials.length} linh vật cấp ${tier} tế luyện`,
+            created_by: userId, is_active: true
         });
+        await newEq.save();
 
-        await newEquipment.save();
-
-        // Add to inventory
+        // Add to Inventory
         cultivation.inventory.push({
-            itemId: newEquipment._id.toString(),
-            name: craftResult.equipment.name,
-            type: `equipment_${craftResult.equipment.type}`,
-            quantity: 1,
-            equipped: false,
-            acquiredAt: new Date(),
-            metadata: {
-                equipmentId: newEquipment._id,
-                rarity: craftResult.equipment.rarity,
-                tier: tier,
-                element: craftResult.equipment.element,
-                stats: craftResult.equipment.stats,
-                craftedAt: new Date()
-            }
+            itemId: newEq._id.toString(), name: newEq.name, type: `equipment_${newEq.type}`, quantity: 1,
+            equipped: false, acquiredAt: new Date(),
+            metadata: { equipmentId: newEq._id, rarity: resultRarity, tier, element: newEq.element, stats: newEq.stats }
         });
 
         await saveWithRetry(cultivation);
-
-        // Invalidate cache so next GET returns fresh data with updated pity
         await invalidateCultivationCache(userId);
 
-        // Log craft
+        // Log
         try {
             await CraftLog.create({
-                userId,
-                materialsConsumed: selectedMaterials,
-                resultEquipmentId: newEquipment._id,
-                resultRarity: craftResult.equipment.rarity,
-                resultType: craftResult.equipment.type,
-                resultName: craftResult.equipment.name,
-                craftMeta: {
-                    probTableUsed: craftResult.craftInfo.probTableUsed,
-                    highestInputRarity: craftResult.equipment.craftMeta.highestInputRarity,
-                    dominantElement: craftResult.equipment.element,
-                    tierCrafted: tier
-                },
+                userId, materialsConsumed: selectedMaterials, resultEquipmentId: newEq._id,
+                resultRarity, resultType: newEq.type, resultName: newEq.name,
+                craftMeta: { probTableUsed: usedTableKey, dominantElement: newEq.element, tierCrafted: tier },
                 success: true
             });
-        } catch (logError) {
-            console.error('[Craft] Log failed:', logError.message);
-        }
+        } catch (e) { console.error(e); }
 
         res.json({
             success: true,
-            message: `Luyện khí thành công! ${craftResult.equipment.name} xuất thế, nguyên khí vạn trượng!`,
+            message: `Luyện khí thành công! ${newEq.name} xuất thế!`,
             data: {
-                equipment: {
-                    id: newEquipment._id,
-                    name: craftResult.equipment.name,
-                    type: craftResult.equipment.type,
-                    rarity: craftResult.equipment.rarity,
-                    tier: tier,
-                    element: craftResult.equipment.element,
-                    stats: craftResult.equipment.stats
-                },
+                equipment: { id: newEq._id, name: newEq.name, type: newEq.type, rarity: resultRarity, tier, element: newEq.element, stats: newEq.stats },
                 craftInfo: craftResult.craftInfo,
                 materialsConsumed: selectedMaterials.length
             }
         });
-    } catch (error) {
-        next(error);
-    }
+
+    } catch (error) { next(error); }
 };
 
 /**

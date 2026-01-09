@@ -16,7 +16,7 @@ import Group from '../models/Group.js';
 import { escapeRegex } from '../utils/mongoSecurity.js';
 import Post from '../models/Post.js';
 import User from '../models/User.js';
-import { authRequired, authOptional } from '../middleware/auth.js';
+import { authRequired, authOptional } from '../middleware/jwtSecurity.js';
 import { withCache, userCache, invalidateCacheByPrefix } from '../utils/cache.js';
 import { groupCreationLimiter } from '../middleware/rateLimit.js';
 import multer from 'multer';

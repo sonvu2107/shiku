@@ -973,3 +973,51 @@ export const backfillDailyActivity = async (req, res, next) => {
         next(e);
     }
 };
+
+/**
+ * GET /stats/system-metrics - Lấy thông tin hệ thống (RAM, CPU)
+ * Real-time metrics không cache để đảm bảo độ chính xác
+ */
+export const getSystemMetrics = async (req, res, next) => {
+    try {
+        const os = await import('os');
+
+        // RAM metrics
+        const totalMemory = os.totalmem();
+        const freeMemory = os.freemem();
+        const usedMemory = totalMemory - freeMemory;
+
+        // CPU metrics (average load over 1 minute)
+        const cpus = os.cpus();
+        const loadAvg = os.loadavg();
+        // Load average normalized by number of cores (0-100%)
+        const cpuUsage = (loadAvg[0] / cpus.length) * 100;
+
+        res.json({
+            success: true,
+            metrics: {
+                ram: {
+                    total: totalMemory,
+                    used: usedMemory,
+                    free: freeMemory,
+                    usedGB: (usedMemory / (1024 ** 3)).toFixed(2),
+                    totalGB: (totalMemory / (1024 ** 3)).toFixed(2),
+                    percentage: ((usedMemory / totalMemory) * 100).toFixed(1)
+                },
+                cpu: {
+                    usage: cpuUsage.toFixed(1),
+                    cores: cpus.length,
+                    model: cpus[0].model,
+                    loadAverage: {
+                        '1min': loadAvg[0].toFixed(2),
+                        '5min': loadAvg[1].toFixed(2),
+                        '15min': loadAvg[2].toFixed(2)
+                    }
+                },
+                uptime: os.uptime()
+            }
+        });
+    } catch (e) {
+        next(e);
+    }
+};

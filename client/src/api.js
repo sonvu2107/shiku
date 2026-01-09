@@ -4,7 +4,7 @@ import { API_CONFIG, SECURITY_CONFIG, isProduction } from './config/environment.
 // URL of API server - using environment config
 const API_URL = API_CONFIG.baseURL;
 
-import { getValidAccessToken, clearTokens, refreshAccessToken } from "./utils/tokenManager.js";
+import { getValidAccessToken, clearTokens, refreshAccessToken, getLastRefreshErrorType } from "./utils/tokenManager.js";
 import { getCSRFToken, ensureCSRFToken } from "./utils/csrfToken.js";
 import {
   parseRateLimitHeaders,
@@ -88,6 +88,7 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
     // Handle error response
     if (!res.ok) {
       // If is 401 and not retry, try to refresh access token
+      
       if (res.status === 401 && !_isRetry) {
         const refreshResult = await refreshAccessToken();
         if (refreshResult) {
@@ -95,16 +96,22 @@ export async function api(path, { method = "GET", body, headers = {}, _isRetry =
           return await api(path, { method, body, headers: { ...headers, Authorization: `Bearer ${refreshResult}` }, _isRetry: true });
         }
 
-        // Refresh failed, clear tokens and redirect (only redirect if not login or register)
-        clearTokens();
-        if (!window.location.pathname.includes('/login') &&
-          !window.location.pathname.includes('/register') &&
-          window.location.pathname !== '/' &&
-          window.location.pathname !== '/welcome') {
-          window.location.href = "/login";
+        const refreshErrorType = getLastRefreshErrorType();
+        if (refreshErrorType !== "transient") {
+          // Refresh failed, clear tokens and redirect (only redirect if not login or register)
+          clearTokens();
+          if (!window.location.pathname.includes('/login') &&
+            !window.location.pathname.includes('/register') &&
+            window.location.pathname !== '/' &&
+            window.location.pathname !== '/welcome') {
+            window.location.href = "/login";
+          }
+          return;
         }
-        return;
+
+        throw new Error("Session refresh failed. Please try again.");
       }
+
 
       // If this was a retry and still got 401, give up
       if (res.status === 401 && _isRetry) {

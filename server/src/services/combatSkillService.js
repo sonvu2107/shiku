@@ -56,16 +56,6 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
             result.effects.push('Phòng thủ tăng cường!');
             break;
 
-        case 'Lôi Điện':
-            // Tăng 50% Tốc Độ trong 8 giây
-            result.buffs.push({
-                type: 'speed',
-                value: 0.50,
-                duration: 8,
-                name: 'Lôi Điện'
-            });
-            result.effects.push('Tấn công tức thời!');;
-            break;
 
         case 'Long Tức':
             // Hồi 20% Chân Nguyên
@@ -156,23 +146,170 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
             result.effects.push(`Hồi ${result.healing} Khí Huyết`);
             break;
 
+        case 'Băng Phong':
+            result.healing = 0;
+            result.damage = baseDamage * 1.3 * skillMultiplier;
+            result.debuffs.push({
+                type: 'speed', // Slow
+                value: 0.3,
+                duration: 2, // 2 turns (was 3s)
+                name: 'Băng Phong'
+            });
+            result.effects.push('Làm chậm 2 lượt!');
+            break;
+
+        case 'Liệt Hỏa':
+            result.healing = 0;
+            result.damage = baseDamage * 1.5 * skillMultiplier;
+            result.debuffs.push({
+                type: 'defenseReduction',
+                value: 0.2,
+                duration: 2, // 2 turns (was 3s)
+                name: 'Liệt Hỏa'
+            });
+            result.effects.push('Giảm giáp 2 lượt!');
+            break;
+
+        case 'Thổ Giáp':
+            result.healing = 0;
+            result.damage = baseDamage * 0.8 * skillMultiplier; // Defensive skill
+            result.buffs.push({
+                type: 'defense',
+                value: 0.3,
+                duration: 3, // 3 turns (was 5s)
+                name: 'Thổ Giáp'
+            });
+            result.effects.push('Tăng thủ 3 lượt!');
+            break;
+
+        case 'Hồi Xuân':
+            result.damage = 0;
+            result.healing = attacker.maxQiBlood * 0.15 * skillMultiplier; // Heal 15%
+            result.buffs.push({
+                type: 'regeneration',
+                value: 0.05, // +5% regen
+                duration: 3, // 3 turns (was 5s)
+                name: 'Hồi Xuân'
+            });
+            result.effects.push('Hồi phục 3 lượt!');
+            break;
+
+        case 'Lôi Điện':
+            result.healing = 0;
+            result.damage = baseDamage * 1.4 * skillMultiplier;
+            // Chance to stun
+            if (Math.random() < 0.3) {
+                result.debuffs.push({
+                    type: 'stun',
+                    value: 1,
+                    duration: 1, // 1 turn (was 2s)
+                    name: 'Lôi Điện'
+                });
+                result.effects.push('Choáng 1 lượt!');
+            }
+            break;
+
+        case 'Cuồng Nộ':
+            result.healing = 0;
+            result.damage = baseDamage * 1.6 * skillMultiplier;
+            result.buffs.push({
+                type: 'criticalRate',
+                value: 0.2, // +20% crit
+                duration: 2, // 2 turns (was 3s)
+                name: 'Cuồng Nộ'
+            });
+            result.effects.push('Tăng bạo kích 2 lượt!');
+            break;
+
+        case 'Kim Cang':
+            result.damage = baseDamage * 1.0 * skillMultiplier;
+            result.buffs.push({
+                type: 'damageReduction',
+                value: 0.15,
+                duration: 2, // 2 turns (was 4s)
+                name: 'Kim Cang'
+            });
+            result.effects.push('Giảm sát thương 2 lượt!');
+            break;
+
+        // --- ADVANCED SKILLS ---
+        case 'Vạn Kiếm Quy Tông':
+            result.damage = baseDamage * 2.5 * skillMultiplier; // High AoE/Single target dmg
+            break;
+
+        case 'Thiên Địa Đồng Thọ':
+            result.damage = baseDamage * 3.0 * skillMultiplier;
+            // Risk: self damage
+            result.hpCost = Math.floor(attacker.maxQiBlood * 0.1); // 10% HP cost
+            break;
+
+        case 'Bát Quái Chưởng':
+            result.damage = baseDamage * 1.8 * skillMultiplier;
+            result.debuffs.push({
+                type: 'attackReduction',
+                value: 0.2,
+                duration: 2, // 2 turns
+                name: 'Bát Quái'
+            });
+            result.effects.push('Giảm công 2 lượt!');
+            break;
+
+        case 'Lăng Ba Vi Bộ':
+            result.damage = baseDamage * 1.2 * skillMultiplier;
+            result.buffs.push({
+                type: 'dodge', // Assuming dodge buff exists or handled as stat
+                value: 0.2, // +20% dodge
+                duration: 2, // 2 turns
+                name: 'Lăng Ba'
+            });
+            result.effects.push('Tăng né tránh 2 lượt!');
+            break;
+
+        case 'Hư Không':
+            result.damage = baseDamage * 2.2 * skillMultiplier;
+            result.buffs.push({
+                type: 'invulnerable',
+                value: 1,
+                duration: 1, // 1 turn (was 2s - usually 1 turn invuln is strong)
+                name: 'Hư Không'
+            });
+            result.effects.push('Bất tử 1 lượt!');
+            break;
+
+        case 'Tái Sinh':
+            // Revive passive usually, but if active:
+            result.healing = attacker.maxQiBlood * 0.4 * skillMultiplier;
+            result.effects.push('Đại hồi phục!');
+            break;
+
+        case 'Định Thân':
+            result.damage = baseDamage * 0.5 * skillMultiplier;
+            result.debuffs.push({
+                type: 'stun',
+                value: 1,
+                duration: 2, // 2 turns (was 3s)
+                name: 'Định Thân'
+            });
+            result.effects.push('Choáng 2 lượt!');
+            break;
+
         case 'Phá Giáp':
-            // Bỏ qua 50% Phòng Thủ của đối thủ trong 5 giây
+            // Bỏ qua 50% Phòng Thủ của đối thủ trong 2 lượt
             result.debuffs.push({
                 type: 'defenseReduction',
                 value: 0.50,
-                duration: 5,
+                duration: 2, // Was 5s
                 name: 'Phá Giáp'
             });
             result.effects.push('Phá vỡ phòng ngự!');
             break;
 
         case 'Phản Đòn':
-            // Phản 40% sát thương nhận về đối thủ
+            // Phản 40% sát thương nhận về đối thủ trong 2 lượt
             result.buffs.push({
                 type: 'reflectDamage',
                 value: 0.40,
-                duration: 5,
+                duration: 2, // Was 5s
                 name: 'Phản Đòn'
             });
             result.effects.push('Phản kích sẵn sàng!');
@@ -202,13 +339,13 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
             result.buffs.push({
                 type: 'invulnerable',
                 value: 1.0,
-                duration: 4,
+                duration: 2, // Was 4s
                 name: 'Ma Hoá'
             });
             result.buffs.push({
                 type: 'regeneration',
-                value: 0.05, // 5% HP/sec
-                duration: 4,
+                value: 0.05, // 5% HP/turn
+                duration: 2, // Was 4s
                 name: 'Ma Hoá Regen'
             });
             result.effects.push('Bất diệt ma thân!');
@@ -219,8 +356,8 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
             result.debuffs.push({
                 type: 'poison',
                 value: 0.10, // 10% max HP over duration
-                duration: 10,
-                damagePerTick: 0.01, // 1% per second
+                duration: 3, // Was 10s
+                damagePerTick: 0.01, // 1% per turn
                 name: 'Độc Tố'
             });
             result.effects.push('Độc tố xâm nhập!');
@@ -243,7 +380,7 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
             result.buffs.push({
                 type: 'shield',
                 value: shieldAmount,
-                duration: 8,
+                duration: 3, // Was 8s
                 name: 'Kim Cang'
             });
             result.effects.push(`Lá chắn ${shieldAmount} HP!`);
@@ -253,13 +390,13 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
             result.buffs.push({
                 type: 'attack',
                 value: 1.0, // +100% ATK
-                duration: 10,
+                duration: 3, // Was 10s
                 name: 'Bạo Tẩu ATK'
             });
             result.debuffs.push({
                 type: 'defenseReduction',
                 value: 0.5, // -50% DEF
-                duration: 10,
+                duration: 3, // Was 10s
                 name: 'Bạo Tẩu DEF',
                 target: 'self' // Apply to self
             });
@@ -277,7 +414,7 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
             result.buffs.push({
                 type: 'invulnerable',
                 value: 1.0,
-                duration: 2,
+                duration: 1, // Was 2s
                 name: 'Mị Ảnh'
             });
             result.effects.push('Né tránh hoàn toàn!');
@@ -352,13 +489,183 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
             break;
 
         default:
-            // Default: gây damage based on skill description
-            // Parse damage từ description nếu có
-            const descMatch = skill.description?.match(/(\d+)%\s*Tấn Công/);
-            if (descMatch) {
-                const percent = parseInt(descMatch[1]) / 100;
-                result.damage = baseDamage * percent * skillMultiplier;
-                result.effects.push(`${skill.name}!`);
+            // Check if skill has data-driven effects
+            if (skill.effects && Array.isArray(skill.effects)) {
+
+                // Base damage logic
+                if (skill.damage) {
+                    let mult = skill.damage.multiplier || 1;
+                    // Handle conditional bonus (e.g. Execute)
+                    if (skill.condition?.targetHpBelowPct) {
+                        const targetHpPct = (defender.qiBlood / (defender.maxQiBlood || 1));
+                        if (targetHpPct < skill.condition.targetHpBelowPct) {
+                            mult = mult * (skill.condition.bonusMultiplier || 1);
+                        }
+                    }
+                    result.damage = baseDamage * mult * skillMultiplier;
+                } else if (skill.type === 'attack') {
+                    // Default attack if type is attack but no explicit damage config
+                    result.damage = baseDamage * skillMultiplier;
+                }
+
+                // Self cost
+                if (skill.selfCost?.hpPctMaxHp) {
+                    const cost = Math.floor((attacker.maxQiBlood || 1000) * skill.selfCost.hpPctMaxHp);
+                    // Add as a 'cost' buff/effect? Or just subtract immediately?
+                    // Implemented as negative healing (trick) or add a special result field
+                    result.hpCost = cost;
+                }
+
+                // Passive revive check (one-time)
+                if (skill.passive?.kind === 'fatalProtection') {
+                    result.buffs.push({
+                        type: 'fatalProtection',
+                        value: skill.passive.revivePctMaxHp || 0.3,
+                        duration: 999,
+                        name: skill.name,
+                        oneTime: true
+                    });
+                    result.effects.push(`${skill.name} (Nội tại)`);
+                }
+
+                // Heal
+                if (skill.heal) {
+                    const maxHp = attacker.maxQiBlood || attacker.qiBlood || 1000;
+                    if (skill.heal.pctMaxHp) {
+                        result.healing += Math.floor(maxHp * skill.heal.pctMaxHp);
+                        result.effects.push(`Hồi phục`);
+                    }
+                }
+
+                // Parse effects list
+                skill.effects.forEach(eff => {
+                    // Chance check
+                    if (eff.chance && Math.random() > eff.chance) return;
+
+                    const duration = eff.duration || 1;
+                    const label = eff.label || skill.name;
+
+                    switch (eff.kind) {
+                        case 'lifesteal':
+                            // Immediate lifesteal for this hit
+                            result.lifestealPct = eff.valuePct || eff.value;
+
+                            // If duration > 0, also add as buff (if supported by applyStatusEffects)
+                            if (duration > 0) {
+                                result.buffs.push({
+                                    type: eff.kind,
+                                    value: eff.valuePct || eff.value,
+                                    duration: duration,
+                                    name: label
+                                });
+                            }
+                            result.effects.push(label);
+                            break;
+
+                        case 'attack':
+                        case 'defense':
+                        case 'speed':
+                        case 'criticalRate':
+                        // case 'lifesteal': // Handled above
+                        case 'reflectDamage':
+                        case 'damageReduction':
+                            result.buffs.push({
+                                type: eff.kind,
+                                value: eff.valuePct || eff.value,
+                                duration: duration,
+                                name: label
+                            });
+                            result.effects.push(label);
+                            break;
+
+                        case 'shield':
+                            const sVal = Math.floor((attacker.maxQiBlood || 1000) * (eff.valuePctMaxHp || 0.1));
+                            result.buffs.push({
+                                type: 'shield',
+                                value: sVal,
+                                duration: duration,
+                                name: label
+                            });
+                            result.effects.push(`Giáp`);
+                            break;
+
+                        case 'invulnerable':
+                            result.buffs.push({
+                                type: 'invulnerable',
+                                value: 1,
+                                duration: duration,
+                                name: label
+                            });
+                            result.effects.push('Bất Tử');
+                            break;
+
+                        case 'poison':
+                            result.debuffs.push({
+                                type: 'poison',
+                                value: 0, // Not used usually
+                                damagePerTick: eff.dotPctMaxHp || 0.02,
+                                duration: duration,
+                                name: label
+                            });
+                            result.effects.push(label || 'Trúng Độc');
+                            break;
+
+                        case 'stun':
+                            result.debuffs.push({
+                                type: 'stun',
+                                value: 1,
+                                duration: duration,
+                                name: label
+                            });
+                            result.effects.push('Choáng');
+                            break;
+
+                        case 'slow':
+                            result.debuffs.push({
+                                type: 'slow',
+                                value: eff.slowPct || 0.3,
+                                duration: duration,
+                                name: label
+                            });
+                            result.effects.push('Làm Chậm');
+                            break;
+
+                        case 'defenseReduction':
+                            result.debuffs.push({
+                                type: 'defenseReduction',
+                                value: eff.valuePct || 0.3,
+                                duration: duration,
+                                name: label
+                            });
+                            result.effects.push(label || 'Phá Giáp');
+                            break;
+
+                        case 'silence':
+                            result.debuffs.push({
+                                type: 'silence',
+                                value: 1,
+                                duration: duration,
+                                name: label
+                            });
+                            result.effects.push(label || 'Câm Lặng');
+                            break;
+
+                        case 'dispel':
+                            result.dispel = true;
+                            result.effects.push('Xóa Buff');
+                            break;
+                    }
+                });
+
+            } else {
+                // Default: gây damage based on skill description
+                // Parse damage từ description nếu có
+                const descMatch = skill.description?.match(/(\d+)%\s*Tấn Công/);
+                if (descMatch) {
+                    const percent = parseInt(descMatch[1]) / 100;
+                    result.damage = baseDamage * percent * skillMultiplier;
+                    result.effects.push(`${skill.name}!`);
+                }
             }
             break;
     }
@@ -376,6 +683,19 @@ export function executeSkill(skill, attacker, defender, battleState = {}) {
  * Check nếu skill có thể dùng (cooldown, mana)
  */
 export function canUseSkill(skill, fighter, battleState = {}) {
+    // Check silence
+    if (fighter.silenced) {
+        return { canUse: false, reason: 'Bị phong ấn' };
+    }
+
+    // Check condition (e.g. hpBelowPct for Enrage)
+    if (skill.condition?.hpBelowPct) {
+        const hpPct = (fighter.qiBlood / (fighter.maxQiBlood || 1));
+        if (hpPct >= skill.condition.hpBelowPct) {
+            return { canUse: false, reason: 'Chưa đủ điều kiện' };
+        }
+    }
+
     // Check mana
     const currentMana = fighter.currentZhenYuan || fighter.zhenYuan || 0;
     if (currentMana < (skill.manaCost || 0)) {
@@ -441,6 +761,11 @@ export function applyStatusEffects(fighter, effects) {
                 modifiedStats.attack = (modifiedStats.attack || 0) * (1 + addPct / 100);
                 break;
             }
+            case 'defense': {
+                const addPct = effect.value < 1 ? effect.value * 100 : effect.value;
+                modifiedStats.defense = (modifiedStats.defense || 0) * (1 + addPct / 100);
+                break;
+            }
             case 'regeneration': {
                 // Regeneration is 0-100% scale in engine
                 const regenAdd = effect.value < 1 ? effect.value * 100 : effect.value;
@@ -466,6 +791,9 @@ export function applyStatusEffects(fighter, effects) {
                 break;
             case 'poison':
                 // Poison is handled by battleEngine DOT logic, keep for duration tracking
+                break;
+            case 'silence':
+                modifiedStats.silenced = true;
                 break;
         }
     });

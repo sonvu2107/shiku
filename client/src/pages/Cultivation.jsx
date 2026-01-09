@@ -20,6 +20,7 @@ import {
   StatsTab,
   TechniquesTab,
   DungeonTab,
+  TowerTab,
   StorageTab,
   CombatTab,
   SectTab,
@@ -428,6 +429,7 @@ const CultivationContent = memo(function CultivationContent() {
     { id: 'storage', label: 'Kho Báu' },
     { id: 'techniques', label: 'Công Pháp' },
     { id: 'dungeon', label: 'Bí Cảnh' },
+    { id: 'tower', label: 'Vạn Kiếp Tháp' },
     { id: 'combat', label: 'Chiến Đấu' },
     { id: 'sect', label: 'Tông Môn' },
     { id: 'craft', label: 'Luyện Khí' },
@@ -616,6 +618,7 @@ const CultivationContent = memo(function CultivationContent() {
           {activeTab === 'storage' && <StorageTab />}
           {activeTab === 'techniques' && <TechniquesTab practiceTechnique={practiceTechnique} notification={notification} clearNotification={clearNotification} />}
           {activeTab === 'dungeon' && <DungeonTab />}
+          {activeTab === 'tower' && <TowerTab />}
           {activeTab === 'combat' && <CombatTab onSwitchTab={setActiveTab} isAdmin={isAdmin} />}
           {activeTab === 'sect' && <SectTab />}
           {activeTab === 'craft' && <CraftTab />}

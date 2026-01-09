@@ -17,6 +17,7 @@ import {
   // User management
   banUser,
   unbanUser,
+  adjustCultivationExp,
   getUsers,
   getUser,
   updateUserRole,
@@ -31,6 +32,7 @@ import {
   getInsights,
   snapshotDailyActivity,
   backfillDailyActivity,
+  getSystemMetrics,
   // Audit
   getAuditLogs,
   getSuspiciousActivities,
@@ -131,6 +133,7 @@ router.post("/ban-user", strictAdminRateLimit, authRequired, adminRequired, banU
 router.post("/unban-user", authRequired, adminRequired, unbanUser);
 router.get("/users", adminRateLimit, userCache, authRequired, adminRequired, getUsers);
 router.get("/users/:id", authRequired, adminRequired, getUser);
+router.post("/users/:id/cultivation-exp", strictAdminRateLimit, authRequired, adminRequired, adjustCultivationExp);
 router.put("/users/:id/role", authRequired, adminRequired, updateUserRole);
 router.delete("/users/:id", authRequired, adminRequired, deleteUser);
 
@@ -146,6 +149,7 @@ router.get("/total-visitors", authRequired, adminRequired, getTotalVisitors);
 router.post("/update-offline-users", authRequired, adminRequired, updateOfflineUsers);
 router.post("/snapshot-daily-activity", strictAdminRateLimit, authRequired, adminRequired, snapshotDailyActivity);
 router.post("/backfill-daily-activity", strictAdminRateLimit, authRequired, adminRequired, backfillDailyActivity);
+router.get("/stats/system-metrics", adminRateLimit, noCache, authRequired, adminRequired, getSystemMetrics);
 
 // ============================================================
 // AUDIT ROUTES

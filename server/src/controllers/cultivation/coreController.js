@@ -302,7 +302,8 @@ export const formatCultivationResponse = async (cultivation) => {
         materials: cultivation.materials || [],
         craftPity: cultivation.craftPity || { epic: 0, legendary: 0 }, // BPS Pity System
         createdAt: cultivation.createdAt,
-        updatedAt: cultivation.updatedAt
+        updatedAt: cultivation.updatedAt,
+        dailyProgress: cultivation.dailyProgress
     };
 };
 

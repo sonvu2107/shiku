@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { api } from '../../../api';
 import { useToast } from '../../../contexts/ToastContext';
+import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { RARITY_COLORS } from '../utils/constants.js';
 
 const Library = ({ sect, membership, onUpgrade, actionLoading }) => {
     const { showSuccess, showError } = useToast();
+    const { refresh } = useCultivation();
     const buildingId = 'library';
     const level = (sect?.buildings || []).find((b) => b.buildingId === buildingId)?.level || 0;
     const maxLevel = 3;
@@ -52,7 +54,10 @@ const Library = ({ sect, membership, onUpgrade, actionLoading }) => {
             const res = await api('/api/sects/' + sect._id + '/library/learn/' + techniqueId, { method: 'POST' });
             if (res.success) {
                 showSuccess(res.message);
-                fetchTechniques();
+                await Promise.all([
+                    fetchTechniques(),
+                    refresh()
+                ]);
             }
         } catch (err) {
             showError(err.message || 'Không thể học công pháp');

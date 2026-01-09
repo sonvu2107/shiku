@@ -174,7 +174,7 @@ export default function SystemHealth() {
                 <div className="flex items-center justify-between mb-2">
                     <span className="flex items-center gap-2 text-sm font-medium">
                         <HardDrive size={16} className="text-purple-500" />
-                        Bộ nhớ
+                        Bộ nhớ Node.js Process
                     </span>
                     <span className="text-sm text-neutral-500">
                         {health?.memory?.heapUsed} / {health?.memory?.heapTotal}
@@ -192,6 +192,66 @@ export default function SystemHealth() {
                     <span className="font-medium">{memoryPercent}% sử dụng</span>
                 </div>
             </div>
+
+            {/* System RAM */}
+            {health?.systemMemory && (
+                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                            <HardDrive size={16} className="text-orange-500" />
+                            RAM Hệ Thống
+                        </span>
+                        <span className="text-sm text-neutral-500">
+                            {health.systemMemory.used} / {health.systemMemory.total}
+                        </span>
+                    </div>
+                    <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2.5 overflow-hidden">
+                        <div
+                            className={`h-full rounded-full transition-all duration-500 ${parseFloat(health.systemMemory.usedPercent) > 80
+                                    ? 'bg-red-500'
+                                    : parseFloat(health.systemMemory.usedPercent) > 60
+                                        ? 'bg-yellow-500'
+                                        : 'bg-green-500'
+                                }`}
+                            style={{ width: health.systemMemory.usedPercent }}
+                        />
+                    </div>
+                    <div className="flex justify-between mt-1 text-xs text-neutral-500">
+                        <span>Free: {health.systemMemory.free} ({health.systemMemory.freePercent})</span>
+                        <span className="font-medium">{health.systemMemory.usedPercent} sử dụng</span>
+                    </div>
+                </div>
+            )}
+
+            {/* CPU Usage */}
+            {health?.cpu && (
+                <div className="p-4 rounded-xl bg-neutral-50 dark:bg-neutral-800/50 border border-neutral-200 dark:border-neutral-700">
+                    <div className="flex items-center justify-between mb-2">
+                        <span className="flex items-center gap-2 text-sm font-medium">
+                            <Cpu size={16} className="text-red-500" />
+                            CPU
+                        </span>
+                        <span className="text-sm text-neutral-500">
+                            {health.cpu.cores} cores
+                        </span>
+                    </div>
+                    <div className="w-full bg-neutral-200 dark:bg-neutral-700 rounded-full h-2.5 overflow-hidden">
+                        <div
+                            className={`h-full rounded-full transition-all duration-500 ${parseFloat(health.cpu.usage) > 80
+                                    ? 'bg-red-500'
+                                    : parseFloat(health.cpu.usage) > 60
+                                        ? 'bg-yellow-500'
+                                        : 'bg-green-500'
+                                }`}
+                            style={{ width: health.cpu.usage }}
+                        />
+                    </div>
+                    <div className="flex justify-between mt-1 text-xs text-neutral-500">
+                        <span>Load: {health.cpu.loadAverage?.['1min']} / {health.cpu.loadAverage?.['5min']} / {health.cpu.loadAverage?.['15min']}</span>
+                        <span className="font-medium">{health.cpu.usage} sử dụng</span>
+                    </div>
+                </div>
+            )}
 
             {/* Services Status */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-3">

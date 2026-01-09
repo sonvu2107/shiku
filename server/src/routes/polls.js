@@ -14,7 +14,7 @@ import express from "express";
 import mongoose from "mongoose";
 import Poll from "../models/Poll.js";
 import Post from "../models/Post.js";
-import { authRequired, authOptional } from "../middleware/auth.js";
+import { authRequired, authOptional } from "../middleware/jwtSecurity.js";
 import { checkBanStatus } from "../middleware/banCheck.js";
 import sanitizeHtml from "sanitize-html";
 import { sanitizeText, containsXSS } from "../utils/xssSanitizer.js";

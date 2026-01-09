@@ -119,6 +119,14 @@ export default function AdminDashboard() {
    const [availableRoles, setAvailableRoles] = useState([]);
    const [userSearchTerm, setUserSearchTerm] = useState("");
    const [userRoleFilter, setUserRoleFilter] = useState("");
+   const [expAdjustModal, setExpAdjustModal] = useState({
+      open: false,
+      user: null,
+      mode: "delta",
+      value: "",
+      reason: ""
+   });
+   const [expAdjustLoading, setExpAdjustLoading] = useState(false);
 
    // State cho search users trong ban tab
    const [banSearchResults, setBanSearchResults] = useState([]);
@@ -275,6 +283,85 @@ export default function AdminDashboard() {
          showError("Lỗi: " + e.message);
       }
    }
+
+   const openExpAdjustModal = useCallback((targetUser) => {
+      setExpAdjustModal({
+         open: true,
+         user: targetUser,
+         mode: "delta",
+         value: "",
+         reason: ""
+      });
+   }, []);
+
+   const closeExpAdjustModal = useCallback(() => {
+      setExpAdjustModal({
+         open: false,
+         user: null,
+         mode: "delta",
+         value: "",
+         reason: ""
+      });
+      setExpAdjustLoading(false);
+   }, []);
+
+   const handleExpAdjustSubmit = useCallback(async (event) => {
+      event?.preventDefault();
+      if (!expAdjustModal.user) return;
+
+      const rawValue = String(expAdjustModal.value || "").trim();
+      if (!rawValue) {
+         showError("Vui lòng nhập giá trị tu vi");
+         return;
+      }
+
+      const parsedValue = Number(rawValue);
+      if (!Number.isFinite(parsedValue) || !Number.isInteger(parsedValue)) {
+         showError("Giá trị phải là số nguyên");
+         return;
+      }
+
+      if (expAdjustModal.mode === "set" && parsedValue < 0) {
+         showError("Tu vi không thể nhỏ hơn 0");
+         return;
+      }
+
+      const payload = expAdjustModal.mode === "set"
+         ? { exp: parsedValue }
+         : { delta: parsedValue };
+
+      if (expAdjustModal.reason?.trim()) {
+         payload.reason = expAdjustModal.reason.trim();
+      }
+
+      setExpAdjustLoading(true);
+      try {
+         const response = await api(`/api/admin/users/${expAdjustModal.user._id}/cultivation-exp`, {
+            method: "POST",
+            body: payload
+         });
+         if (response?.success) {
+            const delta = response?.data?.delta;
+            const deltaLabel = typeof delta === "number" ? delta.toLocaleString("vi-VN") : null;
+            showSuccess(deltaLabel ? `Đã cập nhật tu vi (${deltaLabel})` : "Đã cập nhật tu vi");
+            updateSingleUserInState(expAdjustModal.user._id, {
+               cultivationCache: {
+                  ...(expAdjustModal.user.cultivationCache || {}),
+                  exp: response.data?.exp ?? expAdjustModal.user.cultivationCache?.exp ?? 0,
+                  realmLevel: response.data?.realmLevel ?? expAdjustModal.user.cultivationCache?.realmLevel,
+                  realmName: response.data?.realmName ?? expAdjustModal.user.cultivationCache?.realmName
+               }
+            });
+            closeExpAdjustModal();
+         } else {
+            showError(response?.message || "Không thể cập nhật tu vi");
+         }
+      } catch (e) {
+         showError(e.message || "Lỗi cập nhật tu vi");
+      } finally {
+         setExpAdjustLoading(false);
+      }
+   }, [expAdjustModal, closeExpAdjustModal, showError, showSuccess, updateSingleUserInState]);
 
    if (dataLoading && !user) {
       return (
@@ -723,6 +810,7 @@ export default function AdminDashboard() {
                                        <th className="px-4 py-3 font-semibold text-neutral-900 dark:text-white">Trạng thái</th>
                                        <th className="px-4 py-3 font-semibold text-neutral-900 dark:text-white">Ngày tham gia</th>
                                        <th className="px-4 py-3 font-semibold text-neutral-900 dark:text-white">Số bài viết</th>
+                                       <th className="px-4 py-3 font-semibold text-neutral-900 dark:text-white">Tu vi</th>
                                        <th className="px-4 py-3 font-semibold text-neutral-900 dark:text-white">Quyền</th>
                                        <th className="px-4 py-3 font-semibold text-neutral-900 dark:text-white">Hành động</th>
                                     </tr>
@@ -776,6 +864,11 @@ export default function AdminDashboard() {
                                                 <span className="font-semibold text-black dark:text-white">{u.postCount || 0}</span>
                                              </td>
                                              <td className="px-4 py-3">
+                                                <span className="font-semibold text-black dark:text-white">
+                                                   {formatNumber(u.cultivationCache?.exp || 0)}
+                                                </span>
+                                             </td>
+                                             <td className="px-4 py-3">
                                                 <select
                                                    value={u.role?.name || u.role}
                                                    onChange={(e) => updateUserRole(u._id, e.target.value)}
@@ -786,16 +879,30 @@ export default function AdminDashboard() {
                                                 </select>
                                              </td>
                                              <td className="px-4 py-3">
-                                                <button onClick={() => deleteUser(u._id)} disabled={u._id === user._id} className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50">
-                                                   <Trash2 size={16} />
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                   <button
+                                                      onClick={() => openExpAdjustModal(u)}
+                                                      className="p-2 text-neutral-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20 rounded-lg transition-colors"
+                                                      title="Chỉnh tu vi"
+                                                   >
+                                                      <Edit size={16} />
+                                                   </button>
+                                                   <button
+                                                      onClick={() => deleteUser(u._id)}
+                                                      disabled={u._id === user._id}
+                                                      className="p-2 text-neutral-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors disabled:opacity-50"
+                                                      title="Xóa người dùng"
+                                                   >
+                                                      <Trash2 size={16} />
+                                                   </button>
+                                                </div>
                                              </td>
                                           </tr>
                                        );
                                     })}
                                     {users.length === 0 && (
                                        <tr>
-                                          <td colSpan="6" className="px-4 py-12 text-center text-neutral-500">
+                                          <td colSpan="7" className="px-4 py-12 text-center text-neutral-500">
                                              {usersLoading ? "Đang tải..." : "Không có người dùng nào"}
                                           </td>
                                        </tr>
@@ -852,6 +959,12 @@ export default function AdminDashboard() {
                                              <span className="text-neutral-500">Số bài viết:</span>
                                              <div className="mt-1 font-semibold text-black dark:text-white">{u.postCount || 0}</div>
                                           </div>
+                                          <div>
+                                             <span className="text-neutral-500">Tu vi:</span>
+                                             <div className="mt-1 font-semibold text-black dark:text-white">
+                                                {formatNumber(u.cultivationCache?.exp || 0)}
+                                             </div>
+                                          </div>
                                        </div>
                                        <div className="text-xs text-neutral-500 mb-2">
                                           Ngày tham gia: {u.createdAt ? new Date(u.createdAt).toLocaleDateString('vi-VN') : 'N/A'}
@@ -865,6 +978,14 @@ export default function AdminDashboard() {
                                           >
                                              {availableRoles.map(r => <option key={r.name} value={r.name}>{r.displayName}</option>)}
                                           </select>
+                                       </div>
+                                       <div className="mt-2">
+                                          <button
+                                             onClick={() => openExpAdjustModal(u)}
+                                             className="w-full px-3 py-2 text-xs font-bold rounded-lg border border-amber-300/70 text-amber-700 dark:text-amber-300 dark:border-amber-700/60 hover:bg-amber-50 dark:hover:bg-amber-900/20 transition-colors"
+                                          >
+                                             Chỉnh tu vi
+                                          </button>
                                        </div>
                                     </div>
                                  );
@@ -1208,6 +1329,102 @@ export default function AdminDashboard() {
             }}
             loading={actionLoading}
          />
+
+         <AnimatePresence>
+            {expAdjustModal.open && (
+               <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4"
+                  onClick={closeExpAdjustModal}
+               >
+                  <motion.div
+                     initial={{ scale: 0.96, opacity: 0 }}
+                     animate={{ scale: 1, opacity: 1 }}
+                     exit={{ scale: 0.96, opacity: 0 }}
+                     onClick={(e) => e.stopPropagation()}
+                     className="w-full max-w-lg bg-white dark:bg-neutral-900 rounded-2xl shadow-2xl overflow-hidden"
+                  >
+                     <div className="flex items-center justify-between px-6 py-4 border-b border-neutral-200 dark:border-neutral-800">
+                        <div>
+                           <h3 className="text-lg font-bold text-neutral-900 dark:text-white">Chỉnh tu vi</h3>
+                           <p className="text-xs text-neutral-500 mt-1">
+                              {expAdjustModal.user?.name} · {expAdjustModal.user?.email}
+                           </p>
+                        </div>
+                        <button
+                           onClick={closeExpAdjustModal}
+                           className="p-2 rounded-lg hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                        >
+                           <X className="w-5 h-5 text-neutral-500" />
+                        </button>
+                     </div>
+
+                     <form onSubmit={handleExpAdjustSubmit} className="p-6 space-y-4">
+                        <div>
+                           <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Chế độ</label>
+                           <select
+                              value={expAdjustModal.mode}
+                              onChange={(e) => setExpAdjustModal(prev => ({ ...prev, mode: e.target.value }))}
+                              className="w-full p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors appearance-none cursor-pointer"
+                           >
+                              <option value="delta">Cộng/Trừ tu vi</option>
+                              <option value="set">Đặt tu vi mới</option>
+                           </select>
+                        </div>
+
+                        <div>
+                           <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">
+                              {expAdjustModal.mode === "set" ? "Tu vi mới" : "Delta tu vi"}
+                           </label>
+                           <input
+                              type="number"
+                              step="1"
+                              min={expAdjustModal.mode === "set" ? 0 : undefined}
+                              placeholder={expAdjustModal.mode === "set" ? "VD: 120000" : "VD: -5000 hoặc 5000"}
+                              value={expAdjustModal.value}
+                              onChange={(e) => setExpAdjustModal(prev => ({ ...prev, value: e.target.value }))}
+                              className="w-full p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                           />
+                           <p className="text-[11px] text-neutral-500 mt-1">
+                              {expAdjustModal.mode === "set"
+                                 ? "Giá trị tuyệt đối sẽ ghi đè tu vi hiện tại."
+                                 : "Số âm sẽ giảm, số dương sẽ tăng."}
+                           </p>
+                        </div>
+
+                        <div>
+                           <label className="block text-xs font-bold uppercase text-neutral-500 mb-1">Lý do (tuỳ chọn)</label>
+                           <input
+                              value={expAdjustModal.reason}
+                              onChange={(e) => setExpAdjustModal(prev => ({ ...prev, reason: e.target.value }))}
+                              placeholder="Ghi chú xử lý..."
+                              className="w-full p-3 bg-neutral-50 dark:bg-neutral-800 rounded-xl border border-neutral-200 dark:border-neutral-700 outline-none focus:ring-2 focus:ring-amber-500 focus:border-amber-500 transition-colors"
+                           />
+                        </div>
+
+                        <div className="flex justify-end gap-2 pt-2">
+                           <button
+                              type="button"
+                              onClick={closeExpAdjustModal}
+                              className="px-4 py-2 rounded-xl border border-neutral-200 dark:border-neutral-700 text-neutral-600 dark:text-neutral-300 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
+                           >
+                              Huỷ
+                           </button>
+                           <button
+                              type="submit"
+                              disabled={expAdjustLoading}
+                              className="px-5 py-2 rounded-xl bg-amber-600 text-white font-bold hover:bg-amber-700 disabled:opacity-50 transition-colors"
+                           >
+                              {expAdjustLoading ? "Đang cập nhật..." : "Cập nhật"}
+                           </button>
+                        </div>
+                     </form>
+                  </motion.div>
+               </motion.div>
+            )}
+         </AnimatePresence>
       </PageLayout>
    );
 }

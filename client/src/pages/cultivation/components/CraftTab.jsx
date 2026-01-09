@@ -82,6 +82,10 @@ const CraftTab = memo(function CraftTab() {
     const [expandedType, setExpandedType] = useState(null);
     const [filterTier, setFilterTier] = useState('all');
     const [filterElement, setFilterElement] = useState('all');
+    const [useCatalyst, setUseCatalyst] = useState(false);
+
+    // Check for catalyst in inventory
+    const catalystCount = cultivation?.inventory?.find(i => i.itemId === 'craft_catalyst_luck')?.quantity || 0;
 
     // Load data on mount
     useEffect(() => {
@@ -149,7 +153,10 @@ const CraftTab = memo(function CraftTab() {
                 try {
                     const res = await api('/api/cultivation/craft/preview', {
                         method: 'POST',
-                        body: { materialIds: selectedMaterials.map(m => m.id) }
+                        body: {
+                            materialIds: selectedMaterials.map(m => m.id),
+                            useCatalyst // Send catalyst flag
+                        }
                     });
                     setPreview(res?.data);
                 } catch (err) {
@@ -160,7 +167,7 @@ const CraftTab = memo(function CraftTab() {
         } else {
             setPreview(null);
         }
-    }, [selectedMaterials]);
+    }, [selectedMaterials, useCatalyst]);
 
     // Execute craft
     const executeCraft = async () => {
@@ -175,7 +182,8 @@ const CraftTab = memo(function CraftTab() {
                 body: {
                     materialIds: selectedMaterials.map(m => m.id),
                     targetType: selectedType,
-                    targetSubtype: selectedSubtype
+                    targetSubtype: selectedSubtype,
+                    useCatalyst
                 }
             });
 
@@ -267,8 +275,8 @@ const CraftTab = memo(function CraftTab() {
                                 {/* Stats */}
                                 <div className="grid grid-cols-2 gap-2 text-sm text-left bg-black/40 rounded-lg p-3 border border-white/5">
                                     {Object.entries(craftResult.equipment?.stats || {}).map(([key, value]) => {
-                                        const IGNORED = ['price', 'qiBlood', 'criticalRate', 'criticalDamage', 'dodge', 'accuracy'];
-                                        if (IGNORED.includes(key) || value === 0) return null;
+                                        const IGNORED = ['price', 'qiBlood', 'criticalRate', 'criticalDamage', 'dodge', 'accuracy', 'elemental_damage'];
+                                        if (IGNORED.includes(key) || value === 0 || typeof value !== 'number' || !Number.isFinite(value)) return null;
 
                                         const PERCENT_STATS = ['crit_rate', 'crit_damage', 'evasion', 'hit_rate', 'lifesteal', 'resistance'];
                                         const isPercent = PERCENT_STATS.includes(key);
@@ -339,7 +347,40 @@ const CraftTab = memo(function CraftTab() {
                     </div>
 
                     {/* Craft Button Area */}
-                    <div className="mt-4">
+                    <div className="mt-4 space-y-3">
+                        {/* Catalyst Checkbox */}
+                        {catalystCount > 0 && (
+                            <div
+                                onClick={() => setUseCatalyst(!useCatalyst)}
+                                className={`flex items-center justify-between p-3 rounded-xl border transition-all cursor-pointer ${useCatalyst
+                                    ? 'bg-purple-900/30 border-purple-500/50'
+                                    : 'bg-slate-800/50 border-slate-700/50 hover:bg-slate-800'
+                                    }`}
+                            >
+                                <div className="flex items-center gap-3">
+                                    <div className="w-8 h-8 rounded bg-slate-900 border border-slate-700 flex items-center justify-center">
+                                        <img src="/assets/danduoc.jpg" alt="Catalyst" className="w-6 h-6 object-cover" />
+                                    </div>
+                                    <div className="text-left">
+                                        <div className={`font-bold text-sm ${useCatalyst ? 'text-purple-400' : 'text-slate-300'}`}>
+                                            Thiên Địa Tạo Hóa Đan
+                                        </div>
+                                        <div className="text-xs text-slate-500">
+                                            Gia tăng 20% (x1.2) cơ hội ra đồ xịn nhất
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2">
+                                    <span className="text-xs text-white bg-slate-700 px-2 py-0.5 rounded-full">
+                                        Còn: {catalystCount}
+                                    </span>
+                                    <div className={`w-5 h-5 rounded border flex items-center justify-center ${useCatalyst ? 'bg-purple-500 border-purple-400' : 'border-slate-500'
+                                        }`}>
+                                        {useCatalyst && <span className="text-white text-xs">✓</span>}
+                                    </div>
+                                </div>
+                            </div>
+                        )}
                         <button
                             onClick={executeCraft}
                             disabled={crafting || selectedMaterials.length < 3 || !selectedType || !selectedSubtype}

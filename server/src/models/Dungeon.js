@@ -384,6 +384,81 @@ export const DUNGEON_ITEM_DROPS = {
     ]
 };
 
+// ==================== TECHNIQUE DROPS FROM BOSSES ====================
+// Boss có cơ hội rơi công pháp ĐỘC QUYỀN theo bí cảnh
+// dropRate: Tỷ lệ rơi công pháp khi hạ boss (0-1)
+// techniques: Danh sách công pháp ĐỘC QUYỀN có thể rơi với trọng số
+export const DUNGEON_TECHNIQUE_DROPS = {
+    // Easy (Vân Vũ Cốc) - Không rơi công pháp (quá dễ)
+    easy: {
+        dropRate: 0,
+        techniques: []
+    },
+    // Normal (Hỏa Diễm Động) - 15% cơ hội rơi công pháp độc quyền
+    normal: {
+        dropRate: 0.15,
+        techniques: [
+            { techniqueId: "technique_fire_cave_flame_burst", weight: 100 }  // Hỏa Diễm Bạo Phát (Uncommon)
+        ]
+    },
+    // Hard (Hàn Băng Phong) - 20% cơ hội rơi công pháp độc quyền
+    hard: {
+        dropRate: 0.20,
+        techniques: [
+            { techniqueId: "technique_frost_peak_glacial_heart", weight: 50 }, // Băng Tâm Quyết (Rare)
+            { techniqueId: "technique_frost_peak_blizzard", weight: 50 }       // Bão Tuyết Thuật (Rare)
+        ]
+    },
+    // Nightmare (U Minh Thâm Uyên) - 25% cơ hội rơi công pháp độc quyền
+    nightmare: {
+        dropRate: 0.25,
+        techniques: [
+            { techniqueId: "technique_dark_abyss_soul_reaper", weight: 50 },   // Nhiếp Hồn Đại Pháp (Epic)
+            { techniqueId: "technique_dark_abyss_void_embrace", weight: 50 }   // Hư Vô Ám Mang (Epic)
+        ]
+    },
+    // Hell (Long Huyệt Cấm Địa) - 30% cơ hội rơi công pháp độc quyền
+    hell: {
+        dropRate: 0.30,
+        techniques: [
+            { techniqueId: "technique_dragon_nest_dragon_might", weight: 50 }, // Long Uy Chấn Thiên (Legendary)
+            { techniqueId: "technique_dragon_nest_scales", weight: 50 }        // Long Lân Hộ Thể (Legendary)
+        ]
+    },
+    // Chaos (Hỗn Độn Vực) - 35% cơ hội rơi công pháp độc quyền
+    chaos: {
+        dropRate: 0.35,
+        techniques: [
+            { techniqueId: "technique_chaos_realm_entropy", weight: 50 },      // Hỗn Nguyên Diệt Thế (Mythic)
+            { techniqueId: "technique_chaos_realm_primordial", weight: 50 }    // Hồng Mông Sơ Khai (Mythic)
+        ]
+    }
+};
+
+/**
+ * Roll công pháp rơi từ boss
+ * @param {string} difficulty - Độ khó bí cảnh
+ * @returns {string|null} Technique ID hoặc null nếu không rơi
+ */
+export const rollTechniqueDrop = (difficulty) => {
+    const config = DUNGEON_TECHNIQUE_DROPS[difficulty];
+    if (!config || config.techniques.length === 0) return null;
+
+    // Check drop rate
+    if (Math.random() >= config.dropRate) return null;
+
+    // Weighted random selection
+    const totalWeight = config.techniques.reduce((sum, t) => sum + t.weight, 0);
+    let random = Math.random() * totalWeight;
+
+    for (const tech of config.techniques) {
+        random -= tech.weight;
+        if (random <= 0) return tech.techniqueId;
+    }
+
+    return config.techniques[0].techniqueId;
+};
+
 // ==================== HELPER FUNCTIONS ====================
 
 // Base stats by realm level (matching player stats for balanced combat) - 14 LEVELS
@@ -747,9 +822,11 @@ export default {
     DIFFICULTY_CONFIG,
     FLOOR_REWARDS,
     DUNGEON_ITEM_DROPS,
+    DUNGEON_TECHNIQUE_DROPS,
     calculateMonsterStats,
     selectMonsterForFloor,
     calculateFloorRewards,
     rollItemDrop,
+    rollTechniqueDrop,
     DungeonRun
 };

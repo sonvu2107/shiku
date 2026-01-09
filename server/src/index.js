@@ -19,6 +19,8 @@ import mongoose from "mongoose"; // MongoDB ODM
 // Import config và middleware
 import { connectDB } from "./config/db.js";
 import { validateAllTables } from "./services/craftService_bps.js";
+// Validate BPS Tables on startup (Fail fast)
+validateAllTables();
 import { apiLimiter, authLimiter, authStatusLimiter, uploadLimiter, messageLimiter, postsLimiter, postCreationLimiter, commentCreationLimiter, groupCreationLimiter, eventCreationLimiter, friendRequestLimiter, pollCreationLimiter, postInteractionLimiter } from "./middleware/rateLimit.js";
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 import { requestTimeout } from "./middleware/timeout.js";

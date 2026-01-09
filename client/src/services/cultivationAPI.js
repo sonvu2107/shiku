@@ -434,3 +434,63 @@ export function getFullRealmName(realmLevel, subLevel) {
   const tier = getTierBySubLevel(subLevel);
   return `${realm.name} - ${tier.name}`;
 }
+
+// ==================== TOWER 100 ====================
+
+/**
+ * Lấy trạng thái tháp 100 tầng
+ */
+export async function getTowerStatus() {
+  return api('/api/cultivation/tower/status');
+}
+
+/**
+ * Leo tầng tiếp theo (dùng 1 lượt/ngày)
+ */
+export async function towerClimb() {
+  return api('/api/cultivation/tower/climb', { method: 'POST' });
+}
+
+/**
+ * Quét đãng tầng đã clear (dùng 1 lượt/ngày)
+ * @param {number} floor - Tầng muốn sweep (optional)
+ */
+export async function towerSweep(floor = null) {
+  return api('/api/cultivation/tower/sweep', {
+    method: 'POST',
+    body: JSON.stringify({ floor })
+  });
+}
+
+/**
+ * Quét đãng hết lượt còn lại
+ * @param {number} floor - Tầng muốn sweep (optional)
+ */
+export async function towerSweepAll(floor = null) {
+  return api('/api/cultivation/tower/sweep-all', {
+    method: 'POST',
+    body: JSON.stringify({ floor })
+  });
+}
+
+/**
+ * Nhận Bảo Rương Tuần (1 Khế Ước/tuần)
+ */
+export async function towerClaimChest() {
+  return api('/api/cultivation/tower/claim-chest', { method: 'POST' });
+}
+
+/**
+ * Lấy thông tin tầng cụ thể
+ */
+export async function getTowerFloorInfo(floor) {
+  return api(`/api/cultivation/tower/floor/${floor}`);
+}
+
+/**
+ * Lấy bảng xếp hạng tháp
+ */
+export async function getTowerLeaderboard() {
+  return api('/api/cultivation/tower/leaderboard');
+}
+

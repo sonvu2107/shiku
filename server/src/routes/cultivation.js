@@ -1,5 +1,5 @@
 import express from "express";
-import { authRequired } from "../middleware/auth.js";
+import { authRequired } from "../middleware/jwtSecurity.js";
 import { breakthroughLimiter, cultivationLimiter } from "../middleware/rateLimit.js";
 import { getSummary } from "../controllers/cultivation/summaryController.js";
 import { getCombatStatsLean } from "../controllers/cultivation/combatStatsController.js";
@@ -202,5 +202,16 @@ router.post("/giftcode/create", createGiftCode);
 router.get("/giftcode/list", listGiftCodes);
 router.put("/giftcode/:codeId", updateGiftCode);
 router.delete("/giftcode/:codeId", deleteGiftCode);
+
+// ==================== THÁP 100 TẦNG (TOWER) ====================
+import * as towerController from "../controllers/cultivation/towerController.js";
+
+router.get("/tower/status", towerController.getTowerStatus);
+router.post("/tower/climb", towerController.postTowerClimb);
+router.post("/tower/sweep", towerController.postTowerSweep);
+router.post("/tower/sweep-all", towerController.postTowerSweepAll);
+router.post("/tower/claim-chest", towerController.postTowerClaimChest);
+router.get("/tower/floor/:floor", towerController.getFloorInfo);
+router.get("/tower/leaderboard", towerController.getTowerLeaderboard);
 
 export default router;

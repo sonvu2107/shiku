@@ -3,7 +3,7 @@
  */
 import { useState, useEffect, memo, useRef } from 'react';
 import { GiCutDiamond } from 'react-icons/gi';
-import { FaSortAmountDown, FaSortAmountUp } from 'react-icons/fa';
+import { FaSortAmountDown, FaSortAmountUp, FaRecycle } from 'react-icons/fa';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { RARITY_COLORS, EQUIPMENT_SUBTYPES } from '../utils/constants.js';
 import { getItemIcon, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
@@ -20,6 +20,126 @@ const RARITY_ORDER = {
   mythic: 6
 };
 
+const OUTCOME_TRANSLATION = {
+  // Common
+  'common': 'Bình Thường',
+  'small_win': 'May Mắn',
+  'lucky_boost': 'Vận Đỏ',
+
+  // Advanced
+  'high_materials': 'Bội Thu',
+  'technique_find': 'Ngộ Đạo',
+  'big_technique_find': 'Đại Ngộ',
+  'cosmetic_find': 'Cơ Duyên',
+
+  // Rare/Epic/Legendary
+  'rare_technique': 'Kỳ Ngộ',
+  'epic_technique': 'Phúc Duyên Thâm Hậu',
+  'epic_cosmetics': 'Sắc Nước Hương Trời',
+  'jackpot_technique': 'Cơ Duyên Nghịch Thiên',
+  'LEGENDARY_JACKPOT': 'Thiên Đạo Chúc Phúc'
+};
+
+// ==================== LOOTBOX RESULT MODAL ====================
+function LootboxResultModal({ result, onClose }) {
+  if (!result) return null;
+
+  const { rewards, rolled } = result;
+
+  return (
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
+      <div
+        className="absolute inset-0 bg-black/80 backdrop-blur-sm animate-in fade-in duration-300"
+        onClick={onClose}
+      />
+
+      <div className="relative z-10 w-full max-w-lg bg-slate-900 rounded-2xl border border-amber-500/50 shadow-2xl shadow-amber-500/20 overflow-hidden animate-in zoom-in-95 duration-300">
+
+        {/* Header */}
+        <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 p-6 text-center border-b border-amber-500/30 relative overflow-hidden">
+          <div className="absolute inset-0 bg-[url('/assets/pattern-overlay.png')] opacity-10" />
+          <h2 className="text-2xl font-bold text-amber-400 font-title relative z-10">
+            {rolled?.boxKey ? 'KHAI MỞ BẢO RƯƠNG' : 'PHẦN THƯỞNG'}
+          </h2>
+          {rolled?.outcome && (
+            <div className="text-xs font-mono text-amber-200/70 mt-1 uppercase tracking-widest relative z-10">
+              Kết quả: {OUTCOME_TRANSLATION[rolled.outcome] || rolled.outcome.replace(/_/g, ' ')}
+            </div>
+          )}
+        </div>
+
+        {/* Rewards Grid */}
+        <div className="p-6 max-h-[60vh] overflow-y-auto custom-scrollbar">
+          <div className="grid grid-cols-4 sm:grid-cols-5 gap-3 justify-center">
+            {rewards.map((reward, idx) => {
+              // Determine style based on rarity (simple heuristic if not provided)
+              const isSpecial = ['technique', 'cosmetic'].includes(reward.type);
+              const isEpic = ['cons_epic', 'cons_legendary'].some(p => reward.id.includes(p)) || isSpecial;
+
+              const borderColor = isSpecial ? 'border-purple-500' : isEpic ? 'border-amber-400' : 'border-slate-600';
+              const glow = isSpecial ? 'shadow-[0_0_10px_rgba(168,85,247,0.4)]' : isEpic ? 'shadow-[0_0_10px_rgba(251,191,36,0.3)]' : '';
+
+              const ItemIcon = getItemIcon(reward);
+
+              return (
+                <div
+                  key={idx}
+                  className={`relative group bg-slate-800 rounded-lg p-2 border ${borderColor} ${glow} flex flex-col items-center gap-2 animate-in zoom-in-50 duration-500 fill-mode-backwards`}
+                  style={{ animationDelay: `${idx * 50}ms` }}
+                >
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 rounded bg-black/50 flex items-center justify-center p-1 relative overflow-hidden">
+                    {/* Material images - check if reward.id starts with 'mat_' */}
+                    {reward.id?.startsWith('mat_') ? (
+                      <img
+                        src={`/assets/materials/${reward.id}.jpg`}
+                        alt={reward.name || reward.id}
+                        className="w-full h-full object-cover rounded"
+                        onError={(e) => { e.target.style.display = 'none'; }}
+                      />
+                    ) : IMAGE_COMPONENTS.includes(ItemIcon) ? (
+                      <ItemIcon size={28} />
+                    ) : (
+                      <ItemIcon size={24} className="text-amber-300" />
+                    )}
+
+                    <span className="absolute bottom-0 right-0 bg-slate-900 text-[10px] font-bold px-1 rounded-tl text-white">
+                      x{reward.qty}
+                    </span>
+                  </div>
+
+                  {/* Tooltip-ish name */}
+                  <div className="text-[10px] text-center leading-tight line-clamp-2 text-slate-300 w-full break-words">
+                    {reward.name || reward.id}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {rolled?.duplicateConverted && (
+            <div className="mt-6 p-3 bg-indigo-900/30 border border-indigo-500/30 rounded-lg flex items-center gap-3">
+              <FaRecycle className="text-indigo-400 text-xl flex-shrink-0" />
+              <p className="text-xs text-indigo-200">
+                Đã phát hiện vật phẩm trùng lặp! Một số phần thưởng đã được chuyển đổi thành tài nguyên giá trị cao.
+              </p>
+            </div>
+          )}
+        </div>
+
+        {/* Footer */}
+        <div className="p-4 bg-slate-900 border-t border-slate-700 flex justify-center">
+          <button
+            onClick={onClose}
+            className="px-8 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg shadow-lg shadow-amber-900/50 transition-all active:scale-95"
+          >
+            THU NHẬN
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 const ShopTab = memo(function ShopTab() {
   const { shop, loadShop, purchaseItem, loading, cultivation } = useCultivation();
   const [buying, setBuying] = useState(null);
@@ -33,10 +153,12 @@ const ShopTab = memo(function ShopTab() {
 
   // Modal state for bulk purchase
   const [purchaseModal, setPurchaseModal] = useState(null); // { item, quantity }
+  // Modal state for Lootbox Results
+  const [lootboxResult, setLootboxResult] = useState(null);
 
   // Helper to check if item supports bulk purchase
   const isBulkPurchasable = (item) => {
-    return ['exp_boost', 'breakthrough_boost', 'consumable'].includes(item.type) && !item.oneTimePurchase;
+    return ['exp_boost', 'breakthrough_boost', 'consumable'].includes(item.type) && !item.oneTimePurchase && item.type !== 'lootbox';
   };
 
   // Open purchase modal for bulk-purchasable items
@@ -108,7 +230,10 @@ const ShopTab = memo(function ShopTab() {
 
   // Handle click on buy button - open modal for bulk items, direct buy for others
   const handleItemClick = (item) => {
-    if (isBulkPurchasable(item) && !item.owned) {
+    if (item.type === 'lootbox') {
+      // Direct buy & open for lootbox (single for now)
+      handleBuy(item.id, 1);
+    } else if (isBulkPurchasable(item) && !item.owned) {
       openPurchaseModal(item);
     } else {
       handleBuy(item.id, 1);
@@ -119,7 +244,16 @@ const ShopTab = memo(function ShopTab() {
   const handleBuy = async (itemId, quantity = 1) => {
     setBuying(itemId);
     try {
-      await purchaseItem(itemId, quantity);
+      const data = await purchaseItem(itemId, quantity);
+
+      if (data && data.rewards) {
+        // This was a lootbox open!
+        setLootboxResult({
+          rewards: data.rewards,
+          rolled: data.rolled
+        });
+      }
+
       setPurchaseModal(null); // Close modal after successful purchase
     } finally {
       setBuying(null);
@@ -146,6 +280,7 @@ const ShopTab = memo(function ShopTab() {
   // Parent Categories
   const parentCategories = [
     { id: 'all', label: 'Tất cả' },
+    { id: 'lootbox', label: 'Rương Báu' }, // New Category
     { id: 'equipment', label: 'Trang Bị' },
     { id: 'technique', label: 'Công Pháp' },
     { id: 'title', label: 'Danh Hiệu' },
@@ -186,6 +321,7 @@ const ShopTab = memo(function ShopTab() {
   // Helper to check item type against category
   const checkCategory = (item, category) => {
     if (category === 'all') return true;
+    if (category === 'lootbox') return item.type === 'lootbox';
 
     if (category === 'equipment') {
       return item.type?.startsWith('equipment_');
@@ -454,7 +590,7 @@ const ShopTab = memo(function ShopTab() {
                     <GiCutDiamond size={14} /> {item.price.toLocaleString()}
                   </span>
                   <span className="text-[10px] text-slate-300 uppercase mt-1">
-                    {item.owned ? 'Đã sở hữu' : buying === item.id ? '...' : 'Mua'}
+                    {item.owned ? 'Đã sở hữu' : buying === item.id ? '...' : item.type === 'lootbox' ? 'Mở Ngay' : 'Mua'}
                   </span>
                 </button>
               </div>
@@ -482,6 +618,14 @@ const ShopTab = memo(function ShopTab() {
           item={hoveredItem}
           stats={hoveredItem.stats || hoveredItem.metadata?.stats}
           position={tooltipPosition}
+        />
+      )}
+
+      {/* Lootbox Result Modal */}
+      {lootboxResult && (
+        <LootboxResultModal
+          result={lootboxResult}
+          onClose={() => setLootboxResult(null)}
         />
       )}
 
@@ -551,8 +695,8 @@ const ShopTab = memo(function ShopTab() {
                     key={qty}
                     onClick={() => setModalQuantity(qty)}
                     className={`px-3 py-1 rounded text-xs font-medium transition-all ${purchaseModal.quantity === qty
-                        ? 'bg-amber-600 text-white'
-                        : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+                      ? 'bg-amber-600 text-white'
+                      : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
                       }`}
                   >
                     x{qty}

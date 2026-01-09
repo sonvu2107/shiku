@@ -56,6 +56,16 @@ export const validateEnvVars = () => {
     }
   });
 
+  const isProduction = process.env.NODE_ENV === 'production';
+  if (isProduction) {
+    if (!process.env.ACCESS_TOKEN_SECRET) {
+      invalidVars.push('ACCESS_TOKEN_SECRET must be set in production');
+    }
+    if (!process.env.REFRESH_TOKEN_SECRET && !missingVars.includes('REFRESH_TOKEN_SECRET')) {
+      invalidVars.push('REFRESH_TOKEN_SECRET must be set in production');
+    }
+  }
+
   // Độ dài tối thiểu được khuyến nghị secret JWT (256 bits = 32 characters)
   const MIN_SECRET_LENGTH = 32;
   

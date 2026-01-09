@@ -12,7 +12,8 @@ import { RAID_ATTACKS, calculateRaidDamage, getCooldownRemaining } from "../data
 import { SECT_TECHNIQUES, getTechniquesForLibraryLevel } from "../data/sectTechniques.js";
 import { toWeekKeyUTC } from "../services/sectTime.js";
 import { applySectContribution } from "../services/sectContributionService.js";
-import { authRequired, authOptional } from "../middleware/auth.js";
+import { authRequired, authOptional } from "../middleware/jwtSecurity.js";
+import { invalidateCultivationCache } from "../controllers/cultivation/index.js";
 
 const router = express.Router();
 
@@ -915,6 +916,14 @@ router.post("/:id/library/learn/:techniqueId", authRequired, async (req, res) =>
 
             result = { technique: technique.name, cost: technique.contributionCost };
         });
+
+        // Invalidate cache immediately to update stats/UI
+        // Wrapped in try/catch so Redis failures don't break the successful learn response
+        try {
+            await invalidateCultivationCache(String(req.user.id));
+        } catch (cacheErr) {
+            console.error(`[invalidateCultivationCache] Failed for user ${req.user.id}:`, cacheErr);
+        }
 
         res.json({ success: true, message: `Đã học thành công ${result.technique}`, data: result });
     } catch (e) {

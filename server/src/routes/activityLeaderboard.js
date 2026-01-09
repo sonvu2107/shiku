@@ -13,7 +13,7 @@ import mongoose from "mongoose";
 import Post from "../models/Post.js";
 import Comment from "../models/Comment.js";
 import User from "../models/User.js";
-import { authOptional } from "../middleware/auth.js";
+import { authOptional } from "../middleware/jwtSecurity.js";
 
 const router = express.Router();
 

@@ -61,9 +61,9 @@ export function CultivationProvider({ children }) {
   /**
    * Load cultivation data
    */
-  const loadCultivation = useCallback(async () => {
+  const loadCultivation = useCallback(async (silent = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       setError(null);
       const response = await getCultivation();
       if (response.success) {
@@ -73,7 +73,7 @@ export function CultivationProvider({ children }) {
       setError(err.message);
       console.error('[Cultivation] Error loading:', err);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -1016,8 +1016,8 @@ export function CultivationProvider({ children }) {
   /**
    * Refresh all cultivation data
    */
-  const refresh = useCallback(async () => {
-    await loadCultivation();
+  const refresh = useCallback(async (silent = false) => {
+    await loadCultivation(silent);
   }, [loadCultivation]);
 
   // Load initial data

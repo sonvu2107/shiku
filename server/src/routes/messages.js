@@ -12,7 +12,7 @@
 
 import express from "express";
 import mongoose from "mongoose";
-import { authRequired } from "../middleware/auth.js";
+import { authRequired } from "../middleware/jwtSecurity.js";
 import { escapeRegex } from "../utils/mongoSecurity.js";
 import { validateObjectId } from "../middleware/validateObjectId.js";
 import Message from "../models/Message.js";

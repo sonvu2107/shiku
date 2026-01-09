@@ -1,10 +1,13 @@
 import User from "../../models/User.js";
+import Cultivation from "../../models/Cultivation.js";
 import Post from "../../models/Post.js";
 import Comment from "../../models/Comment.js";
 import AuditLog from "../../models/AuditLog.js";
 import NotificationService from "../../services/NotificationService.js";
+import { invalidateCultivationCache } from "../cultivation/coreController.js";
 import { getClientAgent } from "../../utils/clientAgent.js";
 import { escapeRegex } from "../../utils/mongoSecurity.js";
+import { saveWithRetry } from "../../utils/dbUtils.js";
 
 /**
  * Helper to check if user is a FULL admin (role === 'admin')
@@ -183,7 +186,140 @@ export const unbanUser = async (req, res, next) => {
 };
 
 /**
- * GET /users - Lấy danh sách users với pagination
+ * POST /users/:id/cultivation-exp - Adjust user cultivation exp
+ * Body: { exp?: number, delta?: number, reason?: string }
+ */
+export const adjustCultivationExp = async (req, res, next) => {
+    const targetUserId = req.params.id;
+    const { exp, delta, reason } = req.body || {};
+    const hasExp = exp !== undefined && exp !== null;
+    const hasDelta = delta !== undefined && delta !== null;
+
+    try {
+        if (hasExp === hasDelta) {
+            return res.status(400).json({ error: "Provide exp or delta (only one)" });
+        }
+
+        const parseInteger = (value) => {
+            const parsed = Number(value);
+            if (!Number.isFinite(parsed) || !Number.isInteger(parsed)) return null;
+            return parsed;
+        };
+
+        const expValue = hasExp ? parseInteger(exp) : null;
+        const deltaValue = hasDelta ? parseInteger(delta) : null;
+
+        if (hasExp && (expValue === null || expValue < 0)) {
+            return res.status(400).json({ error: "Invalid exp value" });
+        }
+
+        if (hasDelta && deltaValue === null) {
+            return res.status(400).json({ error: "Invalid delta value" });
+        }
+
+        const targetUser = await User.findById(targetUserId).select("name email role");
+        if (!targetUser) {
+            return res.status(404).json({ error: "User not found" });
+        }
+
+        if (targetUser.role === "admin" && !isFullAdmin(req.user)) {
+            return res.status(403).json({ error: "Full admin required to edit admin accounts" });
+        }
+
+        let cultivation = await Cultivation.findOne({ user: targetUser._id }).select("+expLog");
+        if (!cultivation) {
+            cultivation = await Cultivation.getOrCreate(targetUser._id);
+        }
+        const beforeData = {
+            exp: cultivation.exp,
+            realmLevel: cultivation.realmLevel,
+            realmName: cultivation.realmName,
+            subLevel: cultivation.subLevel
+        };
+
+        let newExp = hasExp ? expValue : (cultivation.exp || 0) + deltaValue;
+        if (newExp < 0) newExp = 0;
+
+        const expDelta = newExp - (cultivation.exp || 0);
+
+        cultivation.exp = newExp;
+
+        const realmFromExp = cultivation.getRealmFromExp();
+        cultivation.realmLevel = realmFromExp.level;
+        cultivation.realmName = realmFromExp.name;
+
+        const progressPercent = cultivation.getRealmProgress();
+        cultivation.subLevel = Math.max(1, Math.ceil(progressPercent / 10));
+
+        cultivation.dataVersion = (cultivation.dataVersion || 0) + 1;
+        cultivation.statsVersion = (cultivation.statsVersion || 0) + 1;
+
+        if (expDelta !== 0) {
+            if (!cultivation.expLog) cultivation.expLog = [];
+            cultivation.expLog.push({
+                amount: expDelta,
+                source: "admin_adjust",
+                description: reason ? `admin_adjust: ${reason}` : "admin_adjust",
+                timestamp: new Date()
+            });
+            if (cultivation.expLog.length > 100) {
+                cultivation.expLog = cultivation.expLog.slice(-100);
+            }
+        }
+
+        await saveWithRetry(cultivation);
+
+        invalidateCultivationCache(targetUser._id).catch(() => { });
+
+        await AuditLog.logAction(req.user._id, "adjust_cultivation_exp", {
+            targetId: targetUser._id,
+            targetType: "user",
+            result: "success",
+            ipAddress: req.ip,
+            clientAgent: getClientAgent(req),
+            reason: reason || "",
+            beforeData,
+            afterData: {
+                exp: cultivation.exp,
+                realmLevel: cultivation.realmLevel,
+                realmName: cultivation.realmName,
+                subLevel: cultivation.subLevel
+            },
+            details: {
+                mode: hasExp ? "set" : "delta",
+                delta: expDelta,
+                targetUserName: targetUser.name,
+                targetUserEmail: targetUser.email
+            }
+        });
+
+        res.json({
+            success: true,
+            message: "Cultivation exp updated",
+            data: {
+                userId: targetUser._id,
+                exp: cultivation.exp,
+                delta: expDelta,
+                realmLevel: cultivation.realmLevel,
+                realmName: cultivation.realmName,
+                subLevel: cultivation.subLevel
+            }
+        });
+    } catch (e) {
+        await AuditLog.logAction(req.user._id, "adjust_cultivation_exp", {
+            targetId: targetUserId,
+            targetType: "user",
+            result: "failed",
+            ipAddress: req.ip,
+            clientAgent: getClientAgent(req),
+            reason: e.message
+        });
+        next(e);
+    }
+};
+
+/**
+ * GET /users - List users with pagination
  */
 export const getUsers = async (req, res, next) => {
     try {
@@ -233,6 +369,7 @@ export const getUsers = async (req, res, next) => {
                     role: 1,
                     avatarUrl: 1,
                     createdAt: 1,
+                    cultivationCache: 1,
                     isBanned: 1,
                     banReason: 1,
                     bannedAt: 1,

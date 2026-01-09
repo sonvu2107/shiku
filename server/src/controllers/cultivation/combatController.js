@@ -3,6 +3,7 @@ import Cultivation, { CULTIVATION_REALMS, SHOP_ITEMS, ITEM_TYPES, SHOP_ITEMS_MAP
 import { formatCultivationResponse, mergeEquipmentStatsIntoCombatStats, invalidateCultivationCache } from "./coreController.js";
 import { logBreakthroughEvent } from "./worldEventController.js";
 import { saveWithRetry } from "../../utils/dbUtils.js";
+import { getDayKeyBangkok } from "../../utils/timeKeys.js";
 
 const hasAdminAccess = async (user) => {
     if (!user) return false;
@@ -107,6 +108,7 @@ export const practiceTechnique = async (req, res, next) => {
 // ==================== PHIÊN LUYỆN CÔNG PHÁP BULK (NHẬP ĐỊNH 10 PHÚT) ====================
 const PRACTICE_SESSION_DURATION_MS = 10 * 60 * 1000; // 10 phút
 const PRACTICE_SESSION_BASE_EXP = 400; // ~40 lần luyện * 10 exp ở cảnh giới thấp
+const MAX_DAILY_PRACTICE_SESSIONS = 2; // Giới hạn 2 lần/ngày
 
 const getPracticeExpPerTechnique = (realmLevel = 1) => {
     const multiplier = 1 + 0.2 * Math.max(0, realmLevel - 1); // +20% mỗi cảnh giới
@@ -151,6 +153,36 @@ export const startPracticeSession = async (req, res, next) => {
             });
         }
 
+        // ==================== CHECK DAILY LIMIT ====================
+        const today = getDayKeyBangkok();
+
+        // Reset daily limit if new day
+        if (cultivation.lastDailyResetKey !== today) {
+            cultivation.dailyProgress = {
+                posts: 0,
+                comments: 0,
+                likes: 0,
+                upvotes: 0,
+                practiceSessions: 0,
+                lastReset: new Date()
+            };
+            cultivation.lastDailyResetKey = today;
+        }
+
+        // Check limit
+        const currentSessions = cultivation.dailyProgress?.practiceSessions || 0;
+        if (currentSessions >= MAX_DAILY_PRACTICE_SESSIONS) {
+            return res.status(400).json({
+                success: false,
+                message: `Hôm nay đạo hữu đã nhập định ${MAX_DAILY_PRACTICE_SESSIONS} lần. Tâm ma dễ sinh, hãy nghỉ ngơi và quay lại vào ngày mai!`,
+                data: {
+                    maxSessions: MAX_DAILY_PRACTICE_SESSIONS,
+                    usedSessions: currentSessions,
+                    nextReset: "00:00 (GMT+7)"
+                }
+            });
+        }
+
         // Lấy danh sách công pháp đã học (chưa max level)
         const eligibleTechniques = (cultivation.learnedTechniques || [])
             .filter(t => t.level < 10)
@@ -177,6 +209,10 @@ export const startPracticeSession = async (req, res, next) => {
             expPerTechnique,
             claimedAt: null
         };
+
+        // Increment daily usage
+        if (!cultivation.dailyProgress) cultivation.dailyProgress = {};
+        cultivation.dailyProgress.practiceSessions = (cultivation.dailyProgress.practiceSessions || 0) + 1;
 
         await saveWithRetry(cultivation);
 

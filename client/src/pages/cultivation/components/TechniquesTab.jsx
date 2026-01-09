@@ -695,6 +695,11 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
                         <h5 className="text-sm font-bold text-purple-200">NHẬP ĐỊNH VẬN CÔNG</h5>
                       </div>
                       <p className="text-xs text-slate-400">Luyện tất cả công pháp trong 10 phút</p>
+                      <p className="text-[10px] text-slate-500 mt-1">
+                        Hôm nay: <span className={(cultivation?.dailyProgress?.practiceSessions || 0) >= 2 ? "text-red-400" : "text-emerald-400"}>
+                          {cultivation?.dailyProgress?.practiceSessions || 0}/2
+                        </span>
+                      </p>
                       {bulkPracticeSession?.hasActiveSession && bulkPracticeTimeLeft > 0 && (
                         <div className="mt-2">
                           <div className="flex items-center justify-between text-xs text-slate-400 mb-1">

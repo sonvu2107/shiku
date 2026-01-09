@@ -437,6 +437,18 @@ export const claimTechnique = async (req, res, next) => {
 
         // Validate session
         if (!session?.sessionId) {
+            const cached = cultivation.lastTechniqueClaim;
+            if (cached?.sessionId === sessionId) {
+                return res.json({
+                    success: true,
+                    alreadyClaimed: true,
+                    data: {
+                        allowedExp: cached.allowedExp,
+                        requestedExp: cached.requestedExp,
+                        claimedAt: cached.claimedAt
+                    }
+                });
+            }
             return res.status(400).json({
                 success: false,
                 message: "Không có phiên vận công nào đang hoạt động"
@@ -444,6 +456,18 @@ export const claimTechnique = async (req, res, next) => {
         }
 
         if (session.sessionId !== sessionId) {
+            const cached = cultivation.lastTechniqueClaim;
+            if (cached?.sessionId === sessionId) {
+                return res.json({
+                    success: true,
+                    alreadyClaimed: true,
+                    data: {
+                        allowedExp: cached.allowedExp,
+                        requestedExp: cached.requestedExp,
+                        claimedAt: cached.claimedAt
+                    }
+                });
+            }
             return res.status(400).json({
                 success: false,
                 message: "SessionId không hợp lệ"
@@ -576,13 +600,36 @@ export const claimTechnique = async (req, res, next) => {
         };
 
         const updatedCultivation = await Cultivation.findOneAndUpdate(
-            { user: userId },
+            {
+                user: userId,
+                "activeTechniqueSession.sessionId": sessionId,
+                "activeTechniqueSession.claimedAt": null
+            },
             updateOps,
             { new: true }
         );
 
         if (!updatedCultivation) {
-            return res.status(404).json({ success: false, message: 'Cultivation not found' });
+            const latest = await Cultivation.findOne({ user: userId })
+                .select("lastTechniqueClaim")
+                .lean();
+
+            if (latest?.lastTechniqueClaim?.sessionId === sessionId) {
+                return res.json({
+                    success: true,
+                    alreadyClaimed: true,
+                    data: {
+                        allowedExp: latest.lastTechniqueClaim.allowedExp,
+                        requestedExp: latest.lastTechniqueClaim.requestedExp,
+                        claimedAt: latest.lastTechniqueClaim.claimedAt
+                    }
+                });
+            }
+
+            return res.status(409).json({
+                success: false,
+                message: 'Session already claimed or invalid'
+            });
         }
 
         // Update technique lastPracticedAt

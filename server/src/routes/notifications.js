@@ -11,7 +11,7 @@
  */
 
 import express from "express";
-import { authRequired } from "../middleware/auth.js";
+import { authRequired } from "../middleware/jwtSecurity.js";
 import NotificationService from "../services/NotificationService.js";
 import { withCache, statsCache, invalidateCacheByPrefix } from "../utils/cache.js";
 import { responseCache, invalidateByPattern } from "../middleware/responseCache.js";

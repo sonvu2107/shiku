@@ -53,6 +53,19 @@ let initializePromise = null;
 let sessionInvalid = false;
 
 
+const REFRESH_ERROR_TYPES = {
+  FATAL: "fatal",
+  TRANSIENT: "transient"
+};
+
+let lastRefreshErrorType = null;
+
+export function getLastRefreshErrorType() {
+  return lastRefreshErrorType;
+}
+
+
+
 // Đảm bảo code chạy được cả môi trường browser và server
 const hasWindow = typeof window !== "undefined" && typeof window.localStorage !== "undefined";
 const safeStorage = hasWindow
@@ -71,6 +84,7 @@ export function saveTokens(accessToken, refreshToken) {
   if (accessToken) {
     inMemoryAccessToken = accessToken;
     sessionInvalid = false; // Reset flag when getting new tokens
+    lastRefreshErrorType = null;
   }
   if (LEGACY_REFRESH_ALLOWED && refreshToken) {
     safeStorage.setItem(REFRESH_TOKEN_KEY, refreshToken);
@@ -136,20 +150,27 @@ export function isTokenExpired(token) {
  * Gọi API lấy access token mới bằng refresh token (cookie hoặc body nếu legacy)
  * Chặn gọi trùng bằng promise
  */
+
 export async function refreshAccessToken() {
-  // Check cooldown period
   const now = Date.now();
+  lastRefreshErrorType = null;
+
+  // Check cooldown period
   if (now - lastRefreshAttempt < REFRESH_COOLDOWN) {
     console.warn("[tokenManager] Refresh cooldown active, skipping refresh");
+    lastRefreshErrorType = REFRESH_ERROR_TYPES.TRANSIENT;
     return null;
   }
 
-  // Check max attempts
+  // Check max attempts (reset after cooldown)
   if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
-    console.error("[tokenManager] Max refresh attempts reached, clearing tokens");
-    clearTokens();
-    refreshAttempts = 0; // Reset counter
-    return null;
+    if (now - lastRefreshAttempt >= REFRESH_COOLDOWN) {
+      refreshAttempts = 0;
+    } else {
+      console.error("[tokenManager] Max refresh attempts reached, skipping refresh");
+      lastRefreshErrorType = REFRESH_ERROR_TYPES.TRANSIENT;
+      return null;
+    }
   }
 
   // If already refreshing, return the existing promise
@@ -162,6 +183,10 @@ export async function refreshAccessToken() {
   lastRefreshAttempt = now;
   refreshAttempts++;
 
+  const maxTransientRetries = 1;
+  const baseBackoffMs = 500;
+  const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
   refreshPromise = (async () => {
     try {
       const legacyRefreshToken = getRefreshToken();
@@ -170,72 +195,89 @@ export async function refreshAccessToken() {
       // Only check legacy refresh token if in legacy mode
       if (LEGACY_REFRESH_ALLOWED && !legacyRefreshToken) {
         console.info("[tokenManager] No legacy refresh token available - user needs to login");
+        lastRefreshErrorType = REFRESH_ERROR_TYPES.FATAL;
         clearTokens();
         return null;
       }
 
-      debug('tokenManager', 'Attempting to refresh access token... (attempt', refreshAttempts, 'of', MAX_REFRESH_ATTEMPTS, ')');
+      const attemptRefresh = async (attempt) => {
+        debug('tokenManager', 'Attempting to refresh access token... (attempt', refreshAttempts, 'of', MAX_REFRESH_ATTEMPTS, ')');
 
-      // No CSRF token needed for refresh endpoint - it's excluded from CSRF protection
-      const response = await fetch(`${API_URL}/api/auth/refresh`, {
-        method: "POST",
-        credentials: "include", // This will send httpOnly cookies
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json"
-          // Note: No CSRF token for refresh endpoint - it's excluded from CSRF protection
-        },
-        body: JSON.stringify(
-          LEGACY_REFRESH_ALLOWED && legacyRefreshToken
-            ? { refreshToken: legacyRefreshToken }
-            : {} // Empty body for cookie-based refresh
-        )
-      });
+        // No CSRF token needed for refresh endpoint - it's excluded from CSRF protection
+        const response = await fetch(`${API_URL}/api/auth/refresh`, {
+          method: "POST",
+          credentials: "include", // This will send httpOnly cookies
+          headers: {
+            "Content-Type": "application/json",
+            Accept: "application/json"
+            // Note: No CSRF token for refresh endpoint - it's excluded from CSRF protection
+          },
+          body: JSON.stringify(
+            LEGACY_REFRESH_ALLOWED && legacyRefreshToken
+              ? { refreshToken: legacyRefreshToken }
+              : {} // Empty body for cookie-based refresh
+          )
+        });
 
-      if (!response.ok) {
-        const errorText = await response.text().catch(() => "<no body>");
-        let errorData;
-        try {
-          errorData = JSON.parse(errorText);
-        } catch {
-          errorData = { error: errorText };
-        }
+        if (!response.ok) {
+          const errorText = await response.text().catch(() => "<no body>");
+          let errorData;
+          try {
+            errorData = JSON.parse(errorText);
+          } catch {
+            errorData = { error: errorText };
+          }
 
-        if (response.status === 400 || response.status === 401) {
-          console.info("[tokenManager] No valid refresh token available:", errorData.code || errorData.error);
-          clearTokens();
-        } else if (response.status === 429) {
-          console.warn("[tokenManager] Rate limited:", errorData.error);
-          // Don't clear tokens on rate limit, just return null and stop trying
-          refreshAttempts = MAX_REFRESH_ATTEMPTS; // Stop further attempts
-          return null;
-        } else {
+          const status = response.status;
+          const isFatal = status === 400 || status === 401 || status === 403;
+          const isTransient = status === 429 || status >= 500;
+
+          if (isFatal) {
+            console.info("[tokenManager] No valid refresh token available:", errorData.code || errorData.error);
+            lastRefreshErrorType = REFRESH_ERROR_TYPES.FATAL;
+            clearTokens();
+            return null;
+          }
+
+          if (isTransient) {
+            console.warn("[tokenManager] Refresh token request transient failure", status, errorData.error || errorData);
+            lastRefreshErrorType = REFRESH_ERROR_TYPES.TRANSIENT;
+            if (attempt < maxTransientRetries) {
+              await sleep(baseBackoffMs * (attempt + 1));
+              return attemptRefresh(attempt + 1);
+            }
+            return null;
+          }
+
           console.error(
             "[tokenManager] Refresh token request failed",
-            response.status,
+            status,
             errorData
           );
+          lastRefreshErrorType = REFRESH_ERROR_TYPES.FATAL;
           clearTokens();
+          return null;
         }
-        throw new Error("Refresh token request failed");
-      }
 
-      const data = await response.json();
+        const data = await response.json();
 
-      if (data.accessToken) {
-        inMemoryAccessToken = data.accessToken;
-        refreshAttempts = 0; // Reset on success
-        debug('tokenManager', 'Successfully refreshed access token');
-        return data.accessToken;
-      } else {
+        if (data.accessToken) {
+          inMemoryAccessToken = data.accessToken;
+          refreshAttempts = 0; // Reset on success
+          lastRefreshErrorType = null;
+          debug('tokenManager', 'Successfully refreshed access token');
+          return data.accessToken;
+        }
+
         console.warn("[tokenManager] Response missing accessToken field");
+        lastRefreshErrorType = REFRESH_ERROR_TYPES.TRANSIENT;
         return null;
-      }
+      };
+
+      return await attemptRefresh(0);
     } catch (error) {
       console.error("[tokenManager] refreshAccessToken error:", error);
-      if (refreshAttempts >= MAX_REFRESH_ATTEMPTS) {
-        clearTokens();
-      }
+      lastRefreshErrorType = REFRESH_ERROR_TYPES.TRANSIENT;
       return null;
     } finally {
       isRefreshing = false;
@@ -355,6 +397,9 @@ export async function getValidAccessToken() {
   }
 
   debug('tokenManager', 'Failed to refresh access token');
+  if (lastRefreshErrorType === REFRESH_ERROR_TYPES.TRANSIENT) {
+    return null;
+  }
   sessionInvalid = true; // Mark as invalid after failed refresh
   return null;
 }

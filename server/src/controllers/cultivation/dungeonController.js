@@ -8,6 +8,7 @@ import {
     selectMonsterForFloor,
     calculateFloorRewards,
     rollItemDrop,
+    rollTechniqueDrop,
     DungeonRun,
     getMonsterSkills
 } from "../../models/Dungeon.js";
@@ -825,6 +826,68 @@ export const battleMonster = async (req, res, next) => {
                 }
             }
 
+            // ==================== TECHNIQUE DROPS (Boss Only) ====================
+            // Boss có cơ hội rơi công pháp độc quyền của bí cảnh
+            let techniqueDropped = null;
+            let techniqueDropInfo = null;
+            if (monster.type === 'boss') {
+                techniqueDropped = rollTechniqueDrop(dungeon.difficulty);
+
+                if (techniqueDropped) {
+                    // Check if player already learned this technique
+                    const alreadyLearned = cultivation.learnedTechniques?.some(
+                        t => t.techniqueId === techniqueDropped
+                    );
+
+                    if (!alreadyLearned) {
+                        // Get technique info
+                        const techniqueInfo = TECHNIQUES_MAP.get(techniqueDropped);
+                        if (techniqueInfo) {
+                            // Add to learnedTechniques
+                            if (!cultivation.learnedTechniques) {
+                                cultivation.learnedTechniques = [];
+                            }
+                            cultivation.learnedTechniques.push({
+                                techniqueId: techniqueDropped,
+                                learnedAt: new Date(),
+                                level: 1,
+                                exp: 0
+                            });
+                            cultivation.markModified('learnedTechniques');
+
+                            techniqueDropInfo = {
+                                id: techniqueDropped,
+                                name: techniqueInfo.name,
+                                rarity: techniqueInfo.rarity,
+                                description: techniqueInfo.description,
+                                dungeonSource: techniqueInfo.dungeonSource || dungeonId,
+                                isNew: true
+                            };
+
+                            console.log(`[Dungeon] ${req.user.id} obtained technique: ${techniqueInfo.name} from ${dungeon.name}`);
+                        }
+                    } else {
+                        // Already learned - give spirit stones compensation instead
+                        const compensationStones = dungeon.difficulty === 'chaos' ? 500 :
+                            dungeon.difficulty === 'hell' ? 300 :
+                                dungeon.difficulty === 'nightmare' ? 200 :
+                                    dungeon.difficulty === 'hard' ? 100 : 50;
+                        cultivation.spiritStones += compensationStones;
+                        cultivation.totalSpiritStonesEarned += compensationStones;
+
+                        const techniqueInfo = TECHNIQUES_MAP.get(techniqueDropped);
+                        techniqueDropInfo = {
+                            id: techniqueDropped,
+                            name: techniqueInfo?.name || techniqueDropped,
+                            rarity: techniqueInfo?.rarity || 'common',
+                            isNew: false,
+                            compensationStones,
+                            message: `Đã học rồi, nhận ${compensationStones} linh thạch bồi thường`
+                        };
+                    }
+                }
+            }
+
 
             // Update progress
             progress.currentFloor = currentFloor;
@@ -924,7 +987,8 @@ export const battleMonster = async (req, res, next) => {
                         baseSpiritStones: rewards.spiritStones,
                         modifierBonuses: modifierBonuses.bonuses.length > 0 ? modifierBonuses.bonuses : null,
                         item: itemDropped ? SHOP_ITEMS_MAP.get(itemDropped) : null,
-                        materials: materialDrops.drops.length > 0 ? materialDrops.drops : null
+                        materials: materialDrops.drops.length > 0 ? materialDrops.drops : null,
+                        technique: techniqueDropInfo // Công pháp độc quyền rơi từ boss
                     },
                     progress: {
                         currentFloor,

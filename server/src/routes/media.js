@@ -12,7 +12,7 @@
 
 import express from 'express';
 import Media from '../models/Media.js';
-import { authRequired } from '../middleware/auth.js';
+import { authRequired } from '../middleware/jwtSecurity.js';
 import { escapeRegex } from '../utils/mongoSecurity.js';
 
 const router = express.Router();

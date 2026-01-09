@@ -1,5 +1,5 @@
-import jwt from "jsonwebtoken";
 import User from "../models/User.js";
+import { verifyAccessToken } from "./jwtSecurity.js";
 
 /**
  * Middleware bắt buộc user phải đăng nhập
@@ -22,8 +22,7 @@ export async function authRequired(req, res, next) {
   if (!token) return res.status(401).json({ error: "Vui lòng đăng nhập" });
 
   try {
-    // Verify JWT token
-    const payload = jwt.verify(token, process.env.JWT_SECRET);
+    const payload = await verifyAccessToken(token);
     // Lấy user từ database (không bao gồm password)
     const user = await User.findById(payload.id).select("-password");
     if (!user) return res.status(401).json({ error: "Token không hợp lệ" });
@@ -55,7 +54,7 @@ export async function authOptional(req, res, next) {
   // Nếu có token, cố gắng parse user
   if (token) {
     try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      const payload = await verifyAccessToken(token);
       const user = await User.findById(payload.id).select("-password");
       if (user) {
         req.user = user;
