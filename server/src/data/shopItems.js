@@ -655,10 +655,10 @@ export const SHOP_ITEMS = [
         name: "Linh Giác Thuật",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 8% Né Tránh và 6% Tốc Độ. Cảm nhận sát khí từ xa.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 12% Né Tránh và 10% Tốc Độ. Cảm nhận sát khí từ xa.",
         rarity: "uncommon",
-        stats: { dodge: 0.08, speed: 0.06 },
-        skill: { name: "Linh Giác", description: "Né tránh 1 đòn tiếp theo, +30% Tốc Độ trong 3 giây", cooldown: 4 },
+        stats: { dodge: 0.12, speed: 0.10 },
+        skill: { name: "Linh Giác", description: "Né tránh 2 đòn tiếp theo, +50% Tốc Độ trong 4 giây", cooldown: 4 },
         lootboxExclusive: true
     },
     {
@@ -666,10 +666,10 @@ export const SHOP_ITEMS = [
         name: "Phúc Vận Chưởng",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 10% Tấn Công. Mỗi đòn đánh có 10% tăng thêm 50% sát thương.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 15% Tấn Công, 8% Chí Mạng. May mắn luôn đến.",
         rarity: "uncommon",
-        stats: { attack: 0.10 },
-        skill: { name: "Phúc Vận", description: "Đòn tiếp theo chắc chắn gây 180% Tấn Công", cooldown: 3 },
+        stats: { attack: 0.15, criticalRate: 0.08 },
+        skill: { name: "Phúc Vận", description: "Đòn tiếp theo chắc chắn gây 250% Tấn Công", cooldown: 3 },
         lootboxExclusive: true
     },
     {
@@ -677,10 +677,10 @@ export const SHOP_ITEMS = [
         name: "Ngọc Bích Kết Giới",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 10% Phòng Thủ và 5% Kháng Cự.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 15% Phòng Thủ và 10% Kháng Cự.",
         rarity: "uncommon",
-        stats: { defense: 0.10, resistance: 0.05 },
-        skill: { name: "Ngọc Kết", description: "Tạo lá chắn 15% Khí Huyết tối đa trong 4 giây", cooldown: 4 },
+        stats: { defense: 0.15, resistance: 0.10 },
+        skill: { name: "Ngọc Kết", description: "Tạo lá chắn 25% Khí Huyết tối đa trong 5 giây", cooldown: 4 },
         lootboxExclusive: true
     },
 
@@ -690,10 +690,10 @@ export const SHOP_ITEMS = [
         name: "Lạc Tinh Kích",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 15% Tấn Công, 8% Chí Mạng. Triệu hồi sao băng tấn công.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 20% Tấn Công, 12% Chí Mạng. Triệu hồi sao băng.",
         rarity: "rare",
-        stats: { attack: 0.15, criticalRate: 0.08 },
-        skill: { name: "Lạc Tinh", description: "Gây 220% Tấn Công, 30% cơ hội choáng 1.5 giây", cooldown: 5 },
+        stats: { attack: 0.20, criticalRate: 0.12 },
+        skill: { name: "Lạc Tinh", description: "Gây 280% Tấn Công, 50% cơ hội choáng 2 giây", cooldown: 5 },
         lootboxExclusive: true
     },
     {
@@ -701,10 +701,10 @@ export const SHOP_ITEMS = [
         name: "Nguyệt Ảnh Hóa Thân",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 12% Né Tránh, 10% Tốc Độ. Hóa thành ánh trăng né đòn.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 18% Né Tránh, 15% Tốc Độ. Hóa thành ánh trăng.",
         rarity: "rare",
-        stats: { dodge: 0.12, speed: 0.10 },
-        skill: { name: "Nguyệt Ảnh", description: "Trở nên bất khả xâm phạm 1.5 giây, hồi 10% Khí Huyết", cooldown: 5 },
+        stats: { dodge: 0.18, speed: 0.15 },
+        skill: { name: "Nguyệt Ảnh", description: "Bất khả xâm phạm 2.5 giây, hồi 20% Khí Huyết", cooldown: 5 },
         lootboxExclusive: true
     },
     {
@@ -712,10 +712,10 @@ export const SHOP_ITEMS = [
         name: "Kim Thân Bất Động",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 15% Phòng Thủ, 8% Khí Huyết. Thân như kim cương.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 20% Phòng Thủ, 15% Khí Huyết. Thân kim cương.",
         rarity: "rare",
-        stats: { defense: 0.15, qiBlood: 0.08 },
-        skill: { name: "Kim Thân", description: "Giảm 60% sát thương nhận trong 4 giây", cooldown: 5 },
+        stats: { defense: 0.20, qiBlood: 0.15 },
+        skill: { name: "Kim Thân", description: "Giảm 70% sát thương nhận trong 5 giây", cooldown: 5 },
         lootboxExclusive: true
     },
     {
@@ -723,10 +723,10 @@ export const SHOP_ITEMS = [
         name: "Linh Hồn Hồi Âm",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 10% Hồi Phục, 10% Chân Nguyên. Hồi máu khi gây sát thương.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 15% Hồi Phục, 15% Chân Nguyên. Hồi máu mạnh.",
         rarity: "rare",
-        stats: { regeneration: 0.10, zhenYuan: 0.10 },
-        skill: { name: "Hồi Âm", description: "10 giây tiếp theo, hồi 5% sát thương gây ra thành Khí Huyết", cooldown: 5 },
+        stats: { regeneration: 0.15, zhenYuan: 0.15 },
+        skill: { name: "Hồi Âm", description: "15 giây tiếp theo, hồi 8% sát thương gây ra thành Khí Huyết", cooldown: 5 },
         lootboxExclusive: true
     },
 
@@ -736,10 +736,10 @@ export const SHOP_ITEMS = [
         name: "Thiên Nộ Cuồng Kích",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 18% Tấn Công, 12% Xuyên Thấu. Cơn cuồng nộ thiên đình.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 25% Tấn Công, 18% Xuyên Thấu. Cuồng nộ thiên đình.",
         rarity: "epic",
-        stats: { attack: 0.18, penetration: 0.12 },
-        skill: { name: "Thiên Nộ", description: "3 đòn liên tiếp, mỗi đòn 100% Tấn Công, bỏ qua 30% giáp", cooldown: 4 },
+        stats: { attack: 0.25, penetration: 0.18 },
+        skill: { name: "Thiên Nộ", description: "5 đòn liên tiếp, mỗi đòn 120% Tấn Công, bỏ qua 50% giáp", cooldown: 4 },
         lootboxExclusive: true
     },
     {
@@ -747,10 +747,10 @@ export const SHOP_ITEMS = [
         name: "Thanh Long Hống",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 15% Tấn Công, 15% Khí Huyết. Tiếng gầm rồng xanh.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 22% Tấn Công, 22% Khí Huyết. Tiếng gầm Long Thần.",
         rarity: "epic",
-        stats: { attack: 0.15, qiBlood: 0.15 },
-        skill: { name: "Long Hống", description: "Gây 250% Tấn Công phạm vi, giảm 20% Phòng Thủ địch 5 giây", cooldown: 5 },
+        stats: { attack: 0.22, qiBlood: 0.22 },
+        skill: { name: "Long Hống", description: "Gây 320% Tấn Công phạm vi, giảm 35% Phòng Thủ địch 6 giây", cooldown: 5 },
         lootboxExclusive: true
     },
     {
@@ -758,10 +758,10 @@ export const SHOP_ITEMS = [
         name: "Chu Tước Hộ Thể",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 18% Phòng Thủ, 12% Kháng Cự. Lửa Chu Tước bảo vệ.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 25% Phòng Thủ, 18% Kháng Cự. Lửa Chu Tước.",
         rarity: "epic",
-        stats: { defense: 0.18, resistance: 0.12 },
-        skill: { name: "Tước Thuẫn", description: "Lá chắn 25% Khí Huyết tối đa, phản 15% sát thương nhận", cooldown: 5 },
+        stats: { defense: 0.25, resistance: 0.18 },
+        skill: { name: "Tước Thuẫn", description: "Lá chắn 40% Khí Huyết tối đa, phản 25% sát thương nhận", cooldown: 5 },
         lootboxExclusive: true
     },
     {
@@ -769,10 +769,10 @@ export const SHOP_ITEMS = [
         name: "Linh Hồn Thu Hoạch",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp bí truyền từ rương báu. Tăng 15% Hút Máu, 10% Chí Mạng. Thu hoạch linh hồn kẻ địch.",
+        description: "Công pháp bí truyền từ rương báu. Tăng 22% Hút Máu, 15% Chí Mạng. Thu hoạch linh hồn.",
         rarity: "epic",
-        stats: { lifesteal: 0.15, criticalRate: 0.10 },
-        skill: { name: "Thu Hoạch", description: "Gây 250% Tấn Công, hồi 50% sát thương gây ra", cooldown: 6 },
+        stats: { lifesteal: 0.22, criticalRate: 0.15 },
+        skill: { name: "Thu Hoạch", description: "Gây 300% Tấn Công, hồi 70% sát thương gây ra", cooldown: 6 },
         lootboxExclusive: true
     },
 
@@ -782,10 +782,10 @@ export const SHOP_ITEMS = [
         name: "Cửu Thiên Thần Công",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp thượng cổ từ rương báu. Tăng 20% mọi chỉ số tấn công. Sức mạnh 9 tầng trời.",
+        description: "Công pháp thượng cổ từ rương báu. Tăng 30% chỉ số tấn công. Sức mạnh 9 tầng trời.",
         rarity: "legendary",
-        stats: { attack: 0.20, criticalRate: 0.15, penetration: 0.15, criticalDamage: 0.20 },
-        skill: { name: "Cửu Thiên", description: "Gây 320% Tấn Công, bỏ qua toàn bộ giáp và kháng cự", cooldown: 6 },
+        stats: { attack: 0.30, criticalRate: 0.25, penetration: 0.25, criticalDamage: 0.30 },
+        skill: { name: "Cửu Thiên", description: "Gây 450% Tấn Công, bỏ qua toàn bộ giáp và kháng cự", cooldown: 6 },
         lootboxExclusive: true
     },
     {
@@ -793,10 +793,10 @@ export const SHOP_ITEMS = [
         name: "Vĩnh Hằng Hộ Vệ",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp thượng cổ từ rương báu. Tăng 20% Phòng Thủ, 20% Khí Huyết, 15% Hồi Phục. Bất diệt vĩnh cửu.",
+        description: "Công pháp thượng cổ từ rương báu. Tăng 28% Phòng Thủ, 28% Khí Huyết, 22% Hồi Phục.",
         rarity: "legendary",
-        stats: { defense: 0.20, qiBlood: 0.20, regeneration: 0.15 },
-        skill: { name: "Vĩnh Hằng", description: "Miễn dịch sát thương 2 giây, hồi 25% Khí Huyết tối đa", cooldown: 8 },
+        stats: { defense: 0.28, qiBlood: 0.28, regeneration: 0.22 },
+        skill: { name: "Vĩnh Hằng", description: "Miễn dịch sát thương 3 giây, hồi 40% Khí Huyết tối đa", cooldown: 8 },
         lootboxExclusive: true
     },
     {
@@ -804,10 +804,10 @@ export const SHOP_ITEMS = [
         name: "Âm Dương Hợp Nhất",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp thượng cổ từ rương báu. Tăng 18% mọi chỉ số. Cân bằng âm dương hoàn hảo.",
+        description: "Công pháp thượng cổ từ rương báu. Tăng 25% mọi chỉ số. Cân bằng âm dương hoàn hảo.",
         rarity: "legendary",
-        stats: { attack: 0.18, defense: 0.18, qiBlood: 0.18, speed: 0.18, criticalRate: 0.12, dodge: 0.12 },
-        skill: { name: "Hợp Nhất", description: "Chuyển đổi 15% sát thương thành hồi phục, +30% mọi chỉ số 6 giây", cooldown: 8 },
+        stats: { attack: 0.25, defense: 0.25, qiBlood: 0.25, speed: 0.25, criticalRate: 0.18, dodge: 0.18 },
+        skill: { name: "Hợp Nhất", description: "Chuyển đổi 25% sát thương thành hồi phục, +50% mọi chỉ số 8 giây", cooldown: 8 },
         lootboxExclusive: true
     },
 
@@ -817,10 +817,10 @@ export const SHOP_ITEMS = [
         name: "Hỗn Nguyên Thái Sơ",
         type: ITEM_TYPES.TECHNIQUE,
         price: 0,
-        description: "Công pháp tối thượng từ rương báu. Tăng 25% mọi chỉ số. Sức mạnh từ thuở hồng hoang.",
+        description: "Công pháp tối thượng từ rương báu. Tăng 35% mọi chỉ số. Sức mạnh hồng hoang.",
         rarity: "mythic",
-        stats: { attack: 0.25, defense: 0.25, qiBlood: 0.25, speed: 0.25, criticalRate: 0.20, lifesteal: 0.15 },
-        skill: { name: "Thái Sơ", description: "Gây 400% Tấn Công, hồi 30% sát thương, bất khả xâm phạm 1.5 giây", cooldown: 10 },
+        stats: { attack: 0.35, defense: 0.35, qiBlood: 0.35, speed: 0.35, criticalRate: 0.30, lifesteal: 0.25 },
+        skill: { name: "Thái Sơ", description: "Gây 600% Tấn Công, hồi 50% sát thương, bất khả xâm phạm 3 giây", cooldown: 10 },
         lootboxExclusive: true
     }
 ];
