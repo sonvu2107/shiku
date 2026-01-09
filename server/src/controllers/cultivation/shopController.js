@@ -46,6 +46,13 @@ async function getCachedSectBonuses(userId) {
 const match = (type, rarity) => SHOP_ITEMS.filter(i => i.type === type && (!rarity || i.rarity === rarity)).map(i => i.id);
 const matByTier = (min, max) => MATERIAL_TEMPLATES.filter(m => m.tier >= min && m.tier <= max).map(m => m.id);
 
+// Helper to get LOOTBOX-EXCLUSIVE techniques only (lootboxExclusive: true)
+const matchLootboxTech = (rarity) => SHOP_ITEMS.filter(i =>
+    i.type === 'technique' &&
+    i.rarity === rarity &&
+    i.lootboxExclusive === true
+).map(i => i.id);
+
 const POOLS = {
     // Materials
     materials_low: matByTier(1, 3),   // Tier 1-3
@@ -62,12 +69,12 @@ const POOLS = {
     boost_exp: match('exp_boost'),
     boost_breakthrough: match('breakthrough_boost'),
 
-    // High Value
-    techniques_common: match('technique', 'common'),
-    techniques_uncommon: match('technique', 'uncommon'),
-    techniques_rare: match('technique', 'rare'),
-    techniques_epic: match('technique', 'epic'),
-    techniques_legendary: match('technique', 'legendary'),
+    // Lootbox-Exclusive Techniques (Không trùng với shop)
+    techniques_uncommon: matchLootboxTech('uncommon'),
+    techniques_rare: matchLootboxTech('rare'),
+    techniques_epic: matchLootboxTech('epic'),
+    techniques_legendary: matchLootboxTech('legendary'),
+    techniques_mythic: matchLootboxTech('mythic'),
 
     cosmetics_rare: [...match('title', 'rare'), ...match('badge', 'rare'), ...match('avatar_frame', 'rare')],
     cosmetics_epic: [...match('title', 'epic'), ...match('badge', 'epic'), ...match('avatar_frame', 'epic')]
@@ -80,10 +87,9 @@ const LOOTBOX_TABLES = {
             { pool: 'cons_common', qty: [1, 2], chance: 0.5 }    // 50% chance for extra consumable
         ],
         primaryRoll: [
-            { chance: 0.60, type: 'materials_mid', qty: [1, 3], outcome: 'small_win' },
-            { chance: 0.30, type: 'boost_exp', qty: [1, 1], outcome: 'lucky_boost' },
-            { chance: 0.09, type: 'techniques_common', qty: [1, 1], outcome: 'technique_find' },
-            { chance: 0.01, type: 'techniques_uncommon', qty: [1, 1], outcome: 'jackpot_technique' }
+            { chance: 0.70, type: 'materials_mid', qty: [1, 3], outcome: 'small_win' },
+            { chance: 0.25, type: 'boost_exp', qty: [1, 1], outcome: 'lucky_boost' },
+            { chance: 0.05, type: 'techniques_uncommon', qty: [1, 1], outcome: 'technique_find' }
         ],
         fallback: { pool: 'cons_uncommon', qty: [1, 1] }
     },
@@ -93,10 +99,10 @@ const LOOTBOX_TABLES = {
             { pool: 'boost_breakthrough', qty: [1, 1], chance: 0.3 }
         ],
         primaryRoll: [
-            { chance: 0.50, type: 'materials_high', qty: [1, 3], outcome: 'high_materials' },
-            { chance: 0.30, type: 'techniques_uncommon', qty: [1, 1], outcome: 'technique_find' },
-            { chance: 0.15, type: 'techniques_rare', qty: [1, 1], outcome: 'big_technique_find' },
-            { chance: 0.05, type: 'cosmetics_rare', qty: [1, 1], outcome: 'cosmetic_find' }
+            { chance: 0.57, type: 'materials_high', qty: [1, 3], outcome: 'high_materials' },
+            { chance: 0.20, type: 'techniques_uncommon', qty: [1, 1], outcome: 'technique_find' },
+            { chance: 0.08, type: 'techniques_rare', qty: [1, 1], outcome: 'big_technique_find' },
+            { chance: 0.15, type: 'cosmetics_rare', qty: [1, 1], outcome: 'cosmetic_find' }
         ],
         fallback: { pool: 'boost_exp', qty: [2, 3] }
     },
@@ -106,10 +112,12 @@ const LOOTBOX_TABLES = {
             { pool: 'boost_breakthrough', qty: [2, 3], chance: 1.0 } // Always get pills
         ],
         primaryRoll: [
-            { chance: 0.40, type: 'techniques_rare', qty: [1, 1], outcome: 'rare_technique' },
-            { chance: 0.30, type: 'techniques_epic', qty: [1, 1], outcome: 'epic_technique' },
-            { chance: 0.20, type: 'cosmetics_epic', qty: [1, 1], outcome: 'epic_cosmetics' },
-            { chance: 0.10, type: 'techniques_legendary', qty: [1, 1], outcome: 'LEGENDARY_JACKPOT' }
+            { chance: 0.40, type: 'cosmetics_epic', qty: [1, 1], outcome: 'epic_cosmetics' },
+            { chance: 0.23, type: 'techniques_rare', qty: [1, 1], outcome: 'rare_technique' },
+            { chance: 0.15, type: 'techniques_epic', qty: [1, 1], outcome: 'epic_technique' },
+            { chance: 0.15, type: 'boost_breakthrough', qty: [2, 4], outcome: 'bonus_pills' },
+            { chance: 0.05, type: 'techniques_legendary', qty: [1, 1], outcome: 'LEGENDARY_JACKPOT' },
+            { chance: 0.02, type: 'techniques_mythic', qty: [1, 1], outcome: 'MYTHIC_ULTIMATE' }
         ],
         fallback: { pool: 'cons_epic', qty: [1, 2] }
     }
@@ -316,6 +324,7 @@ export const getShop = async (req, res, next) => {
         const sectBonuses = await getCachedSectBonuses(userId);
         const shopDiscount = sectBonuses.shopDiscount || 0;
 
+        // Purchasable shop items (price > 0 or oneTimePurchase)
         const shopItems = SHOP_ITEMS
             .filter(item => (item.price > 0 || item.oneTimePurchase) && !item.exclusive)
             .map(item => {
@@ -340,6 +349,18 @@ export const getShop = async (req, res, next) => {
                 };
             });
 
+        // Lootbox-exclusive techniques (price: 0, not purchasable, pero cần hiển thị trong TechniquesTab)
+        const lootboxTechniques = SHOP_ITEMS
+            .filter(item => item.type === 'technique' && item.lootboxExclusive === true)
+            .map(item => ({
+                ...item,
+                price: 0,
+                originalPrice: 0,
+                owned: cultivation.learnedTechniques?.some(t => t.techniqueId === item.id),
+                canAfford: false,
+                lootboxOnly: true // Flag để UI biết đây là item từ rương
+            }));
+
         // Process equipment ownership
         const enrichedEquipment = equipmentItems.map(eq => ({
             ...eq,
@@ -350,7 +371,7 @@ export const getShop = async (req, res, next) => {
 
         res.json({
             success: true,
-            data: { items: [...shopItems, ...enrichedEquipment], spiritStones: cultivation.spiritStones }
+            data: { items: [...shopItems, ...lootboxTechniques, ...enrichedEquipment], spiritStones: cultivation.spiritStones }
         });
 
     } catch (error) {

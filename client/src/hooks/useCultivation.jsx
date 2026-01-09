@@ -268,12 +268,10 @@ export function CultivationProvider({ children }) {
           inventory: response.data.inventory
         };
 
-        // Nếu là công pháp, cập nhật learnedTechniques
-        if (response.data.learnedTechnique) {
-          updateData.learnedTechniques = [
-            ...(cultivation?.learnedTechniques || []),
-            response.data.learnedTechnique
-          ];
+        // Cập nhật learnedTechniques từ server response (bao gồm lootbox và mua trực tiếp)
+        // Server trả về mảng đầy đủ learnedTechniques
+        if (response.data.learnedTechniques) {
+          updateData.learnedTechniques = response.data.learnedTechniques;
         }
 
         setCultivation(prev => ({

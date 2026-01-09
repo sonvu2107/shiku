@@ -644,6 +644,184 @@ export const SHOP_ITEMS = [
         skill: { name: "Hồng Mông", description: "Hồi 40% Khí Huyết và Chân Nguyên, tăng 50% Hút Máu 10 giây", cooldown: 12 },
         dungeonDrop: true,
         dungeonSource: "chaos_realm"
+    },
+
+    // ==================== CÔNG PHÁP ĐỘC QUYỀN RƯƠNG BÁU (LOOTBOX EXCLUSIVE) ====================
+    // Các công pháp này CHỈ rơi từ rương báu, KHÔNG BÁN trong shop, KHÔNG rơi từ dungeon
+
+    // === UNCOMMON TIER (Rương Thường - chest_basic) ===
+    {
+        id: "loot_technique_spirit_sense",
+        name: "Linh Giác Thuật",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 8% Né Tránh và 6% Tốc Độ. Cảm nhận sát khí từ xa.",
+        rarity: "uncommon",
+        stats: { dodge: 0.08, speed: 0.06 },
+        skill: { name: "Linh Giác", description: "Né tránh 1 đòn tiếp theo, +30% Tốc Độ trong 3 giây", cooldown: 4 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_fortune_palm",
+        name: "Phúc Vận Chưởng",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 10% Tấn Công. Mỗi đòn đánh có 10% tăng thêm 50% sát thương.",
+        rarity: "uncommon",
+        stats: { attack: 0.10 },
+        skill: { name: "Phúc Vận", description: "Đòn tiếp theo chắc chắn gây 180% Tấn Công", cooldown: 3 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_jade_barrier",
+        name: "Ngọc Bích Kết Giới",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 10% Phòng Thủ và 5% Kháng Cự.",
+        rarity: "uncommon",
+        stats: { defense: 0.10, resistance: 0.05 },
+        skill: { name: "Ngọc Kết", description: "Tạo lá chắn 15% Khí Huyết tối đa trong 4 giây", cooldown: 4 },
+        lootboxExclusive: true
+    },
+
+    // === RARE TIER (Rương Cao Cấp - chest_advanced) ===
+    {
+        id: "loot_technique_starfall_strike",
+        name: "Lạc Tinh Kích",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 15% Tấn Công, 8% Chí Mạng. Triệu hồi sao băng tấn công.",
+        rarity: "rare",
+        stats: { attack: 0.15, criticalRate: 0.08 },
+        skill: { name: "Lạc Tinh", description: "Gây 220% Tấn Công, 30% cơ hội choáng 1.5 giây", cooldown: 5 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_moonlight_veil",
+        name: "Nguyệt Ảnh Hóa Thân",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 12% Né Tránh, 10% Tốc Độ. Hóa thành ánh trăng né đòn.",
+        rarity: "rare",
+        stats: { dodge: 0.12, speed: 0.10 },
+        skill: { name: "Nguyệt Ảnh", description: "Trở nên bất khả xâm phạm 1.5 giây, hồi 10% Khí Huyết", cooldown: 5 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_golden_body",
+        name: "Kim Thân Bất Động",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 15% Phòng Thủ, 8% Khí Huyết. Thân như kim cương.",
+        rarity: "rare",
+        stats: { defense: 0.15, qiBlood: 0.08 },
+        skill: { name: "Kim Thân", description: "Giảm 60% sát thương nhận trong 4 giây", cooldown: 5 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_spirit_echo",
+        name: "Linh Hồn Hồi Âm",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 10% Hồi Phục, 10% Chân Nguyên. Hồi máu khi gây sát thương.",
+        rarity: "rare",
+        stats: { regeneration: 0.10, zhenYuan: 0.10 },
+        skill: { name: "Hồi Âm", description: "10 giây tiếp theo, hồi 5% sát thương gây ra thành Khí Huyết", cooldown: 5 },
+        lootboxExclusive: true
+    },
+
+    // === EPIC TIER (Rương Thần Bí - chest_master) ===
+    {
+        id: "loot_technique_celestial_fury",
+        name: "Thiên Nộ Cuồng Kích",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 18% Tấn Công, 12% Xuyên Thấu. Cơn cuồng nộ thiên đình.",
+        rarity: "epic",
+        stats: { attack: 0.18, penetration: 0.12 },
+        skill: { name: "Thiên Nộ", description: "3 đòn liên tiếp, mỗi đòn 100% Tấn Công, bỏ qua 30% giáp", cooldown: 4 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_azure_dragon_roar",
+        name: "Thanh Long Hống",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 15% Tấn Công, 15% Khí Huyết. Tiếng gầm rồng xanh.",
+        rarity: "epic",
+        stats: { attack: 0.15, qiBlood: 0.15 },
+        skill: { name: "Long Hống", description: "Gây 250% Tấn Công phạm vi, giảm 20% Phòng Thủ địch 5 giây", cooldown: 5 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_vermillion_shield",
+        name: "Chu Tước Hộ Thể",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 18% Phòng Thủ, 12% Kháng Cự. Lửa Chu Tước bảo vệ.",
+        rarity: "epic",
+        stats: { defense: 0.18, resistance: 0.12 },
+        skill: { name: "Tước Thuẫn", description: "Lá chắn 25% Khí Huyết tối đa, phản 15% sát thương nhận", cooldown: 5 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_soul_harvest",
+        name: "Linh Hồn Thu Hoạch",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp bí truyền từ rương báu. Tăng 15% Hút Máu, 10% Chí Mạng. Thu hoạch linh hồn kẻ địch.",
+        rarity: "epic",
+        stats: { lifesteal: 0.15, criticalRate: 0.10 },
+        skill: { name: "Thu Hoạch", description: "Gây 250% Tấn Công, hồi 50% sát thương gây ra", cooldown: 6 },
+        lootboxExclusive: true
+    },
+
+    // === LEGENDARY TIER (Rương Thần Bí - chest_master, rate thấp) ===
+    {
+        id: "loot_technique_nine_heavens",
+        name: "Cửu Thiên Thần Công",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp thượng cổ từ rương báu. Tăng 20% mọi chỉ số tấn công. Sức mạnh 9 tầng trời.",
+        rarity: "legendary",
+        stats: { attack: 0.20, criticalRate: 0.15, penetration: 0.15, criticalDamage: 0.20 },
+        skill: { name: "Cửu Thiên", description: "Gây 320% Tấn Công, bỏ qua toàn bộ giáp và kháng cự", cooldown: 6 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_eternal_guardian",
+        name: "Vĩnh Hằng Hộ Vệ",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp thượng cổ từ rương báu. Tăng 20% Phòng Thủ, 20% Khí Huyết, 15% Hồi Phục. Bất diệt vĩnh cửu.",
+        rarity: "legendary",
+        stats: { defense: 0.20, qiBlood: 0.20, regeneration: 0.15 },
+        skill: { name: "Vĩnh Hằng", description: "Miễn dịch sát thương 2 giây, hồi 25% Khí Huyết tối đa", cooldown: 8 },
+        lootboxExclusive: true
+    },
+    {
+        id: "loot_technique_yin_yang_fusion",
+        name: "Âm Dương Hợp Nhất",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp thượng cổ từ rương báu. Tăng 18% mọi chỉ số. Cân bằng âm dương hoàn hảo.",
+        rarity: "legendary",
+        stats: { attack: 0.18, defense: 0.18, qiBlood: 0.18, speed: 0.18, criticalRate: 0.12, dodge: 0.12 },
+        skill: { name: "Hợp Nhất", description: "Chuyển đổi 15% sát thương thành hồi phục, +30% mọi chỉ số 6 giây", cooldown: 8 },
+        lootboxExclusive: true
+    },
+
+    // === MYTHIC TIER (Rương Thần Bí - chest_master, rate cực thấp) ===
+    {
+        id: "loot_technique_primordial_chaos",
+        name: "Hỗn Nguyên Thái Sơ",
+        type: ITEM_TYPES.TECHNIQUE,
+        price: 0,
+        description: "Công pháp tối thượng từ rương báu. Tăng 25% mọi chỉ số. Sức mạnh từ thuở hồng hoang.",
+        rarity: "mythic",
+        stats: { attack: 0.25, defense: 0.25, qiBlood: 0.25, speed: 0.25, criticalRate: 0.20, lifesteal: 0.15 },
+        skill: { name: "Thái Sơ", description: "Gây 400% Tấn Công, hồi 30% sát thương, bất khả xâm phạm 1.5 giây", cooldown: 10 },
+        lootboxExclusive: true
     }
 ];
 
