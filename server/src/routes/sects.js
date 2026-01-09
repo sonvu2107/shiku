@@ -944,6 +944,86 @@ router.post("/:id/library/learn/:techniqueId", authRequired, async (req, res) =>
     }
 });
 
+/**
+ * POST /api/sects/:id/library/unlearn/:techniqueId
+ * Quên công pháp tông môn (để đổi sang công pháp khác)
+ * Hoàn lại 50% contribution cost
+ */
+router.post("/:id/library/unlearn/:techniqueId", authRequired, async (req, res) => {
+    const userId = req.user._id;
+    const sectId = req.params.id;
+    const techniqueId = req.params.techniqueId;
+
+    const session = await mongoose.startSession();
+    try {
+        let result;
+        await session.withTransaction(async () => {
+            // Check membership
+            const member = await SectMember.findOne({ sect: sectId, user: userId, isActive: true }).session(session);
+            if (!member) throw new Error("NOT_MEMBER");
+
+            // Find technique definition
+            const technique = SECT_TECHNIQUES.find(t => t.id === techniqueId);
+            if (!technique) throw new Error("TECHNIQUE_NOT_FOUND");
+
+            // Check if user has learned this technique
+            const cultivation = await Cultivation.findOne({ user: userId }).session(session);
+            if (!cultivation) throw new Error("NO_CULTIVATION");
+
+            const learnedIndex = cultivation.sectTechniques?.findIndex(t => t.id === techniqueId);
+            if (learnedIndex === undefined || learnedIndex === -1) {
+                throw new Error("NOT_LEARNED");
+            }
+
+            // Remove the technique
+            cultivation.sectTechniques.splice(learnedIndex, 1);
+            await cultivation.save({ session });
+
+            // Refund 50% contribution
+            const refundAmount = Math.floor(technique.contributionCost * 0.5);
+            const weekKey = toWeekKeyUTC(new Date());
+
+            await SectContribution.findOneAndUpdate(
+                { sect: sectId, user: userId },
+                {
+                    $inc: { "weekly.energy": refundAmount },
+                    $set: { "weekly.weekKey": weekKey }
+                },
+                { session, upsert: true }
+            );
+
+            result = {
+                technique: technique.name,
+                refund: refundAmount,
+                originalCost: technique.contributionCost
+            };
+        });
+
+        // Invalidate cache
+        try {
+            await invalidateCultivationCache(String(req.user.id));
+        } catch (cacheErr) {
+            console.error(`[invalidateCultivationCache] Failed for user ${req.user.id}:`, cacheErr);
+        }
+
+        res.json({
+            success: true,
+            message: `Đã quên công pháp ${result.technique}. Hoàn lại ${result.refund} điểm đóng góp`,
+            data: result
+        });
+    } catch (e) {
+        const msg = String(e?.message || "");
+        if (msg === "NOT_MEMBER") return res.status(403).json({ success: false, message: "Bạn không phải thành viên tông môn này" });
+        if (msg === "TECHNIQUE_NOT_FOUND") return res.status(404).json({ success: false, message: "Không tìm thấy công pháp" });
+        if (msg === "NO_CULTIVATION") return res.status(400).json({ success: false, message: "Bạn chưa có dữ liệu tu luyện" });
+        if (msg === "NOT_LEARNED") return res.status(400).json({ success: false, message: "Bạn chưa học công pháp này" });
+        console.error("[ERROR][SECTS] Error unlearning technique:", e);
+        res.status(500).json({ success: false, message: "Lỗi khi quên công pháp" });
+    } finally {
+        session.endSession();
+    }
+});
+
 // ==================== RAID ROUTES ====================
 
 /**

@@ -18,6 +18,7 @@ const Library = ({ sect, membership, onUpgrade, actionLoading }) => {
     const [weeklyContribution, setWeeklyContribution] = useState(0);
     const [loadingTech, setLoadingTech] = useState(false);
     const [learningId, setLearningId] = useState(null);
+    const [unlearningId, setUnlearningId] = useState(null);
 
     const EFFECTS = {
         0: { slots: 0, description: 'Chưa xây dựng' },
@@ -63,6 +64,31 @@ const Library = ({ sect, membership, onUpgrade, actionLoading }) => {
             showError(err.message || 'Không thể học công pháp');
         } finally {
             setLearningId(null);
+        }
+    };
+
+    const handleUnlearnTechnique = async (techniqueId, techName, cost) => {
+        if (!sect?._id || unlearningId) return;
+        const refund = Math.floor(cost * 0.5);
+        const confirmed = window.confirm(
+            `Bạn có chắc muốn quên "${techName}"?\n\nBạn sẽ được hoàn lại ${refund} điểm đóng góp (50%).`
+        );
+        if (!confirmed) return;
+
+        setUnlearningId(techniqueId);
+        try {
+            const res = await api('/api/sects/' + sect._id + '/library/unlearn/' + techniqueId, { method: 'POST' });
+            if (res.success) {
+                showSuccess(res.message);
+                await Promise.all([
+                    fetchTechniques(),
+                    refresh()
+                ]);
+            }
+        } catch (err) {
+            showError(err.message || 'Không thể quên công pháp');
+        } finally {
+            setUnlearningId(null);
         }
     };
 
@@ -200,7 +226,14 @@ const Library = ({ sect, membership, onUpgrade, actionLoading }) => {
                                         {tech.contributionCost} điểm
                                     </span>
                                     {tech.learned ? (
-                                        <span className="text-[10px] text-emerald-400">Đã học</span>
+                                        <button
+                                            onClick={() => handleUnlearnTechnique(tech.id, tech.name, tech.contributionCost)}
+                                            disabled={unlearningId === tech.id}
+                                            className="text-[10px] bg-red-900/30 hover:bg-red-800/50 text-red-300 px-2 py-1 rounded border border-red-500/30 transition-all disabled:opacity-50"
+                                            title={`Quên để hoàn lại ${Math.floor(tech.contributionCost * 0.5)} điểm`}
+                                        >
+                                            {unlearningId === tech.id ? '...' : 'Quên'}
+                                        </button>
                                     ) : (
                                         <button
                                             onClick={() => handleLearnTechnique(tech.id)}
