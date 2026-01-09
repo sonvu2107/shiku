@@ -70,7 +70,24 @@ export const MATERIAL_TEMPLATES = [
     { id: 'mat_immortal_wood', name: 'Tiên Mộc', tier: 11, element: 'wood', icon: '🌴', description: 'Linh mộc từ tiên giới' },
     { id: 'mat_heavenly_water', name: 'Thiên Hà Thủy', tier: 11, element: 'water', icon: '🌌', description: 'Nước từ thiên hà' },
     { id: 'mat_dao_fire', name: 'Đạo Hỏa', tier: 11, element: 'fire', icon: '🔴', description: 'Lửa của đại đạo' },
-    { id: 'mat_chaos_earth', name: 'Hỗn Độn Thổ', tier: 11, element: 'earth', icon: '⚫', description: 'Đất từ hỗn độn nguyên thủy' }
+    { id: 'mat_chaos_earth', name: 'Hỗn Độn Thổ', tier: 11, element: 'earth', icon: '⚫', description: 'Đất từ hỗn độn nguyên thủy' },
+
+    // ===== TIER 14: Thiên Đạo Materials (Ultimate) =====
+    // Hệ Kim
+    { id: 'mat_thiendao_kim', name: 'Thiên Đạo Thần Kim', tier: 14, element: 'metal', icon: '⚙️', description: 'Kim loại sinh ra từ pháp tắc Thiên Đạo, mang tính tuyệt đối, không thể phá hủy' },
+    { id: 'mat_vanphap_kim', name: 'Vạn Pháp Kim Tinh', tier: 14, element: 'metal', icon: '✨', description: 'Kết tinh của mọi pháp kim loại trong vũ trụ' },
+    // Hệ Mộc
+    { id: 'mat_thiennguyen_moc', name: 'Thiên Nguyên Tiên Mộc', tier: 14, element: 'wood', icon: '�', description: 'Gốc rễ sinh mệnh của vạn giới, bất diệt theo thời gian' },
+    { id: 'mat_daosinh_moc', name: 'Đạo Sinh Thần Mộc', tier: 14, element: 'wood', icon: '🌿', description: 'Mộc sinh từ Đạo, không chịu quy luật sinh diệt' },
+    // Hệ Thủy
+    { id: 'mat_thiendao_thuy', name: 'Thiên Đạo Nguyên Thủy', tier: 14, element: 'water', icon: '💧', description: 'Dòng nước nguyên sơ trước cả thời không' },
+    { id: 'mat_vangioi_thuy', name: 'Vạn Giới Linh Thủy', tier: 14, element: 'water', icon: '💠', description: 'Thủy tụ linh của vô số thế giới' },
+    // Hệ Hỏa
+    { id: 'mat_thiendao_hoa', name: 'Thiên Đạo Đạo Hỏa', tier: 14, element: 'fire', icon: '🔥', description: 'Ngọn lửa thiêu đốt cả pháp tắc và nhân quả' },
+    { id: 'mat_honnguyen_hoa', name: 'Hỗn Nguyên Thần Diễm', tier: 14, element: 'fire', icon: '🔺', description: 'Thần hỏa sinh từ hỗn độn ban sơ' },
+    // Hệ Thổ
+    { id: 'mat_thiendao_tho', name: 'Thiên Đạo Hỗn Thổ', tier: 14, element: 'earth', icon: '🪨', description: 'Đất sinh ra từ hỗn mang, gánh chịu cả thiên địa' },
+    { id: 'mat_vangioi_tho', name: 'Vạn Giới Bản Nguyên Thổ', tier: 14, element: 'earth', icon: '🔳', description: 'Nền móng của mọi không gian tồn tại' }
 ];
 
 // Create lookup map for O(1) access
