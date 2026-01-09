@@ -447,8 +447,10 @@ export const buyItem = async (req, res, next) => {
             // Add equipment logic (simplified for brevity, standard inventory push)
             for (let i = 0; i < qty; i++) {
                 cultivation.inventory.push({
-                    itemId: equipment._id, // Use as ref? Or metadata logic. Sticking to old logic style roughly.
-                    quantity: 1, // Equipments usually 1
+                    itemId: equipment._id.toString(),
+                    name: equipment.name,
+                    type: `equipment_${equipment.type}`,
+                    quantity: 1,
                     metadata: equipment.toObject(),
                     acquiredAt: new Date()
                 });

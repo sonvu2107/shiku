@@ -411,7 +411,8 @@ export const addExp = async (req, res, next) => {
             boostedAmount = Math.floor(boostedAmount * boostMultiplier);
 
             const capLimit = getCapByRealm(realmLevel);
-            const { allowedExp, capRemaining } = await consumeExpCap(userId, boostedAmount, capLimit);
+            const capResult = await consumeExpCap(userId, boostedAmount, capLimit);
+            const { allowedExp, capRemaining, diminishLore, diminishMultiplier } = capResult;
 
             if (allowedExp === 0) {
                 // Tính thời gian còn lại đến khi cap reset (5 phút window)
@@ -422,13 +423,17 @@ export const addExp = async (req, res, next) => {
 
                 return res.status(429).json({
                     success: false,
-                    message: `Linh khí đã cạn kiệt, chờ ${retryAfterSeconds} giây`,
+                    message: diminishLore || `Linh khí đã cạn kiệt, chờ ${retryAfterSeconds} giây`,
                     capRemaining: 0,
-                    retryAfter: retryAfterSeconds
+                    retryAfter: retryAfterSeconds,
+                    diminishLore
                 });
             }
 
             expEarned = allowedExp;
+            // Store diminish info for response
+            req._diminishLore = diminishLore;
+            req._diminishMultiplier = diminishMultiplier;
             cultivation.updateQuestProgress('yinyang_click', 1);
             await saveWithRetry(cultivation); // Save quest progress separately
         }
@@ -483,17 +488,23 @@ export const addExp = async (req, res, next) => {
 
         if (isPatchMode) {
             // Lightweight patch response for high-frequency requests
-            return res.json({
+            const patchResponse = {
                 success: true,
                 mode: 'patch',
                 dataVersion: updatedCultivation.dataVersion,
                 message: stonesEarned > 0 ? `+${expEarned} Tu Vi, +${stonesEarned} Linh Thạch` : `+${expEarned} Tu Vi`,
                 patch: formatLightweightCultivationPatch(updatedCultivation)
-            });
+            };
+            // Include diminish lore if active
+            if (req._diminishLore) {
+                patchResponse.diminishLore = req._diminishLore;
+                patchResponse.diminishMultiplier = req._diminishMultiplier;
+            }
+            return res.json(patchResponse);
         }
 
         // Legacy full response
-        res.json({
+        const fullResponse = {
             success: true,
             message: stonesEarned > 0 ? `+${expEarned} Tu Vi, +${stonesEarned} Linh Thạch` : `+${expEarned} Tu Vi`,
             data: {
@@ -505,7 +516,13 @@ export const addExp = async (req, res, next) => {
                 potentialRealm: canBreakthrough ? potentialRealm : null,
                 cultivation: await formatCultivationResponse(updatedCultivation)
             }
-        });
+        };
+        // Include diminish lore if active
+        if (req._diminishLore) {
+            fullResponse.diminishLore = req._diminishLore;
+            fullResponse.diminishMultiplier = req._diminishMultiplier;
+        }
+        res.json(fullResponse);
     } catch (error) { next(error); }
 };
 
