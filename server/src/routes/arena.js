@@ -69,16 +69,24 @@ async function reduceEquipmentDurability(cultivation) {
  * Merge equipment stats into combat stats (from battle.js)
  */
 function mergeEquipmentStats(combatStats, equipStats) {
-    if (!equipStats) return;
+    if (!equipStats) return combatStats;
 
-    const statKeys = ['attack', 'defense', 'qiBlood', 'zhenYuan', 'speed', 'criticalRate',
-        'criticalDamage', 'dodge', 'accuracy', 'penetration', 'resistance', 'lifesteal', 'regeneration'];
+    combatStats.attack = (combatStats.attack || 0) + (equipStats.attack || 0);
+    combatStats.defense = (combatStats.defense || 0) + (equipStats.defense || 0);
+    combatStats.qiBlood = (combatStats.qiBlood || 0) + (equipStats.hp || 0);
+    combatStats.speed = (combatStats.speed || 0) + (equipStats.speed || 0);
 
-    statKeys.forEach(key => {
-        if (equipStats[key]) {
-            combatStats[key] = (combatStats[key] || 0) + equipStats[key];
-        }
-    });
+    // Percentage stats (convert 0-1 to 0-100)
+    combatStats.criticalRate = (combatStats.criticalRate || 0) + ((equipStats.crit_rate || 0) * 100);
+    combatStats.criticalDamage = (combatStats.criticalDamage || 0) + ((equipStats.crit_damage || 0) * 100);
+    combatStats.accuracy = (combatStats.accuracy || 0) + ((equipStats.hit_rate || 0) * 100);
+    combatStats.dodge = (combatStats.dodge || 0) + ((equipStats.evasion || 0) * 100);
+    combatStats.lifesteal = (combatStats.lifesteal || 0) + ((equipStats.lifesteal || 0) * 100);
+
+    combatStats.penetration = (combatStats.penetration || 0) + (equipStats.penetration || 0);
+    combatStats.regeneration = (combatStats.regeneration || 0) + (equipStats.energy_regen || 0);
+
+    return combatStats;
 }
 
 /**
@@ -86,15 +94,16 @@ function mergeEquipmentStats(combatStats, equipStats) {
  */
 function getManaCostByRarity(rarity, maxMana = 1000) {
     const manaCostPercentMap = {
-        'common': 0.15,
-        'uncommon': 0.20,
-        'rare': 0.25,
-        'epic': 0.30,
-        'legendary': 0.35
+        'common': 0.05,
+        'uncommon': 0.08,
+        'rare': 0.10,
+        'epic': 0.12,
+        'legendary': 0.15,
+        'mythic': 0.20
     };
-    const costPercent = manaCostPercentMap[rarity] || 0.15;
+    const costPercent = manaCostPercentMap[rarity] || 0.05;
     const manaCost = Math.floor(maxMana * costPercent);
-    return Math.max(20, Math.min(manaCost, Math.floor(maxMana * 0.4)));
+    return Math.max(5, Math.min(manaCost, Math.floor(maxMana * 0.4)));
 }
 
 /**
@@ -114,23 +123,36 @@ function getLearnedSkills(cultivation, maxMana = null) {
         }
     }
 
-    if (cultivation.learnedTechniques && cultivation.learnedTechniques.length > 0) {
-        cultivation.learnedTechniques.forEach(learned => {
-            // Use TECHNIQUES_MAP for O(1) lookup
-            const technique = TECHNIQUES_MAP.get(learned.techniqueId);
-            if (technique && technique.skill) {
-                skills.push({
-                    ...technique.skill,
-                    techniqueId: technique.id,
-                    techniqueName: technique.name,
-                    rarity: technique.rarity || 'common',
-                    level: learned.level,
-                    damageMultiplier: 1 + (learned.level - 1) * 0.15,
-                    manaCost: getManaCostByRarity(technique.rarity || 'common', actualMaxMana)
-                });
-            }
+    const equippedSlots = cultivation.equippedCombatTechniques || [];
+
+    if (equippedSlots.length === 0 && cultivation.learnedTechniques?.length > 0) {
+        const firstTechnique = cultivation.learnedTechniques[0];
+        equippedSlots.push({
+            slotIndex: 0,
+            techniqueId: firstTechnique.techniqueId
         });
     }
+
+    const sortedSlots = equippedSlots.sort((a, b) => a.slotIndex - b.slotIndex);
+
+    sortedSlots.forEach(slot => {
+        const learned = cultivation.learnedTechniques?.find(t => t.techniqueId === slot.techniqueId);
+        if (!learned) return;
+
+        const technique = TECHNIQUES_MAP.get(learned.techniqueId);
+        if (technique && technique.skill) {
+            skills.push({
+                ...technique.skill,
+                techniqueId: technique.id,
+                techniqueName: technique.name,
+                rarity: technique.rarity || 'common',
+                level: learned.level,
+                slotIndex: slot.slotIndex,
+                damageMultiplier: 1 + (learned.level - 1) * 0.15,
+                manaCost: getManaCostByRarity(technique.rarity || 'common', actualMaxMana)
+            });
+        }
+    });
     return skills;
 }
 
