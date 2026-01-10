@@ -1,3 +1,4 @@
+import { API_CONFIG } from "../config/environment.js";
 
 // Biến lưu CSRF token và thời gian hết hạn (cache trong RAM)
 let csrfToken = null;
@@ -16,7 +17,7 @@ export async function getCSRFToken(forceRefresh = false) {
     return csrfToken;
   }
   try {
-    const API_URL = import.meta.env.VITE_API_URL || (import.meta.env.DEV ? "" : "http://localhost:4000");
+    const API_URL = API_CONFIG.baseURL;
     // Gọi API lấy CSRF token mới
     const response = await fetch(`${API_URL}/api/csrf-token`, {
       method: "GET",
