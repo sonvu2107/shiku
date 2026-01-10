@@ -134,8 +134,9 @@ export function getPassiveExpPerMin(realm) {
 /**
  * Lấy dayKey theo timezone Asia/Bangkok (VN/SEA)
  * Reset vào 00:00 giờ Việt Nam, không phải UTC
+ * @returns {string} 'YYYY-MM-DD' format
  */
-function getDayKeyInBangkok() {
+export function getDayKeyInBangkok() {
     // en-CA format gives YYYY-MM-DD
     return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Bangkok' }).format(new Date());
 }

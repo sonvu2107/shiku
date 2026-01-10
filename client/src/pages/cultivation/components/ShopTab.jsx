@@ -179,7 +179,7 @@ const ShopTab = memo(function ShopTab() {
       title: 'Đan Dược Tu Luyện',
       affects: [
         'Thu thập tu vi thụ động (Passive)',
-        'Phần thưởng Bí Cảnh (Dungeon) - EXP',
+        'Phần thưởng Bí Cảnh (Dungeon) - Tu Vi',
         'Phiên luyện công pháp (Practice Session)'
       ],
       notes: [
@@ -192,7 +192,7 @@ const ShopTab = memo(function ShopTab() {
         'Tăng tỷ lệ thành công Độ Kiếp khi bấm Độ Kiếp'
       ],
       notes: [
-        'Không tăng EXP hay Linh Thạch'
+        'Không tăng Tu Vi hay Linh Thạch'
       ]
     },
     spirit_stones: {
@@ -202,7 +202,7 @@ const ShopTab = memo(function ShopTab() {
       ],
       notes: [
         'Không áp dụng cho Luận Võ Tiên-Ma (Arena PvP)',
-        'Không áp dụng cho thưởng nhiệm vụ hay EXP thụ động'
+        'Không áp dụng cho thưởng nhiệm vụ hay Tu Vi thụ động'
       ]
     }
   };

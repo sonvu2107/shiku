@@ -858,7 +858,7 @@ const PKTab = memo(function PKTab({ onSwitchTab }) {
                 {battle.rewards && (
                   <div className="mt-2 pt-2 border-t border-slate-700/50 flex items-center justify-between">
                     <span className="text-xs text-slate-500">
-                      Phần thưởng: +{battle.isUserWinner ? battle.rewards.winnerExp : battle.rewards.loserExp} exp,
+                      Phần thưởng: +{battle.isUserWinner ? battle.rewards.winnerExp : battle.rewards.loserExp} tu vi,
                       +{battle.isUserWinner ? battle.rewards.winnerSpiritStones : battle.rewards.loserSpiritStones} linh thạch
                     </span>
                     {/* Revenge Button - Only show if user lost */}

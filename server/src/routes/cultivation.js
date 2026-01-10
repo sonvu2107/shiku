@@ -174,6 +174,38 @@ router.get("/techniques/combat-slots", getCombatSlots);
 router.post("/techniques/equip-combat-slot", equipCombatSlot);
 router.post("/techniques/unequip-combat-slot", unequipCombatSlot);
 
+// DEBUG: Reset Technique Session (DEV ONLY)
+router.post("/techniques/debug-reset", async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { default: Cultivation } = await import("../models/Cultivation.js");
+
+    const result = await Cultivation.findOneAndUpdate(
+      { user: userId },
+      {
+        $unset: { activeTechniqueSession: '' },
+        $set: {
+          'dailyProgress.meditationSeconds': 0,
+          lastTechniqueClaimTime: null
+        }
+      },
+      { new: true }
+    );
+
+    res.json({
+      success: true,
+      message: "Đã reset technique session + quota",
+      data: {
+        activeTechniqueSession: result?.activeTechniqueSession,
+        meditationSeconds: result?.dailyProgress?.meditationSeconds,
+        lastTechniqueClaimTime: result?.lastTechniqueClaimTime
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+});
+
 // ==================== NGUYÊN LIỆU LUYỆN KHÍ (MATERIALS) ====================
 router.get("/materials/catalog", getMaterialCatalog);
 router.get("/materials/inventory", getUserMaterials);

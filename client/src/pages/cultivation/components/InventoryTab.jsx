@@ -1028,7 +1028,7 @@ const InventoryTab = memo(function InventoryTab() {
                           effects.push({ label: 'Tăng Linh Thạch', value: `+${Math.round(spiritStoneBonus * 100)}%`, color: 'text-amber-400' });
                         }
                         if (questExpBonus) {
-                          effects.push({ label: 'Tăng Exp Nhiệm Vụ', value: `+${Math.round(questExpBonus * 100)}%`, color: 'text-cyan-400' });
+                          effects.push({ label: 'Tăng Tu Vi Nhiệm Vụ', value: `+${Math.round(questExpBonus * 100)}%`, color: 'text-cyan-400' });
                         }
 
                         // Mount/Pet stats - kiểm tra cả ở metadata.stats và item.stats

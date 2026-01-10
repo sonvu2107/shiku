@@ -277,7 +277,9 @@ const CultivationSchema = new mongoose.Schema({
     comments: { type: Number, default: 0 },
     likes: { type: Number, default: 0 },
     upvotes: { type: Number, default: 0 },
-    practiceSessions: { type: Number, default: 0 }, // Giới hạn nhập định mỗi ngày
+    practiceSessions: { type: Number, default: 0 }, // Legacy - giữ lại tương thích
+    meditationSeconds: { type: Number, default: 0 }, // Tổng giây nhập định trong ngày
+    dayKey: { type: String, default: null }, // 'YYYY-MM-DD' Bangkok cho atomic reset
     lastReset: { type: Date, default: Date.now }
   },
 
@@ -358,17 +360,20 @@ const CultivationSchema = new mongoose.Schema({
     techniqueId: { type: String },
     startedAt: { type: Date },
     endsAt: { type: Date },
+    durationSec: { type: Number }, // Duration gốc để check min time khi claim
     realmAtStart: { type: Number },
     claimedAt: { type: Date, default: null }
   },
 
   // Kết quả claim gần nhất (cho retry idempotent)
   lastTechniqueClaim: {
-    sessionId: { type: String },
-    techniqueId: { type: String },
-    allowedExp: { type: Number },
-    requestedExp: { type: Number },
-    claimedAt: { type: Date }
+    sessionId: { type: String, default: null },
+    techniqueId: { type: String, default: null },
+    allowedExp: { type: Number, default: 0 },
+    requestedExp: { type: Number, default: 0 },
+    durationSec: { type: Number, default: 0 },
+    elapsedSec: { type: Number, default: 0 },
+    claimedAt: { type: Date, default: null }
   },
 
   // Timestamp lần claim cuối (cho cooldown 15s)

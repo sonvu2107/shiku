@@ -165,7 +165,7 @@ const QuestsTab = memo(function QuestsTab({ onCheckIn, checkingIn }) {
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
           <h3 className="font-bold text-gold font-title tracking-wide text-lg lg:text-xl">ĐIỂM DANH HÀNG NGÀY</h3>
           <div className="flex items-center gap-3 text-sm">
-            <span className="text-amber-400">Streak: {cultivation.loginStreak || 0} ngày</span>
+            <span className="text-amber-400">Chuỗi: {cultivation.loginStreak || 0} ngày</span>
             <span className="text-slate-500">|</span>
             <span className="text-slate-400">Kỷ lục: {cultivation.longestStreak || 0} ngày</span>
           </div>

@@ -64,7 +64,7 @@ const FlyingReward = ({ startPos, targetPos, rewards, onComplete, inline = false
                     >
                         {item.type === 'exp' ? (
                             <div className="w-6 h-6 rounded-full bg-amber-500/80 shadow-[0_0_15px_rgba(245,158,11,0.6)] border border-amber-300 backdrop-blur-sm flex items-center justify-center text-[10px] font-bold text-white">
-                                Exp
+                                Tu Vi
                             </div>
                         ) : (
                             <div className="w-5 h-5 rotate-45 bg-emerald-500/80 shadow-[0_0_15px_rgba(16,185,129,0.6)] border border-emerald-300 backdrop-blur-sm flex items-center justify-center">

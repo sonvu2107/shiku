@@ -435,7 +435,7 @@ const DashboardTab = memo(function DashboardTab({
         </motion.button>
 
         <p className="text-center text-xs text-slate-500 mt-3">
-          Tu vi tăng <span className="text-emerald-400 font-bold">{passiveExpStatus?.expPerMinute || 2} exp/phút</span> • Tối đa 24h • Đan dược có hiệu lực
+          Tu vi tăng <span className="text-emerald-400 font-bold">{passiveExpStatus?.expPerMinute || 2} Tu Vi/Phút</span> • Tối đa 24 giờ • Đan dược có hiệu lực
         </p>
       </div>
 

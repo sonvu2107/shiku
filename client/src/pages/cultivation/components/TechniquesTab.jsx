@@ -401,26 +401,18 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
           estimatedExp: res.data.estimatedExp
         });
         setSessionTimeLeft(res.data.durationSec);
+        showSuccess(`Đã nhập định, khí hải vận chuyển ${res.data.techniqueName || 'công pháp'}...`);
 
         // Set FULL cooldown (session duration + 15s) to show total wait time
         const fullCooldown = res.data.durationSec + TECHNIQUE_SESSION_COOLDOWN_SEC;
         setActivationCooldown(fullCooldown);
       } else if (res.cooldownRemaining) {
-        // Cooldown error - show remaining wait time
-        const msg = `Chưa hết cooldown, chờ ${res.cooldownRemaining}s để vận công tiếp`;
-        if (notification) {
-          // Don't spam notification - just set cooldown
-        } else {
-          // Only alert once, not on every click
-        }
+        // Cooldown error - show toast with remaining wait time
+        showError(`Chân khí chưa hồi phục, cần tĩnh dưỡng ${res.cooldownRemaining}s`);
         setActivationCooldown(res.cooldownRemaining);
       } else {
         const msg = res.message || 'Kích hoạt công pháp thất bại';
-        if (notification) {
-          // Show notification if available
-        } else {
-          alert(msg);
-        }
+        showError(msg);
       }
     } catch (e) {
       console.error('Activate technique failed:', e);
@@ -431,9 +423,11 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
       if (cooldownMatch) {
         const remainingSec = parseInt(cooldownMatch[1]);
         setActivationCooldown(remainingSec);
+        showError(`Chân khí chưa hồi phục, cần tĩnh dưỡng ${remainingSec}s`);
+      } else {
+        // Lỗi khác (quota hết, session active, etc.)
+        showError(errorMsg || 'Vận công thất bại, tâm thần bất ổn');
       }
-
-      // Don't show alert/notification - cooldown display is enough
     } finally {
       setActivating(false);
     }
@@ -882,7 +876,19 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
                 ({cultivationTechniques.filter(t => (t.type === 'efficiency' || t.type === 'semi-auto' || t.type === 'semi_auto') && t.learned).length}/{cultivationTechniques.filter(t => t.type === 'efficiency' || t.type === 'semi-auto' || t.type === 'semi_auto').length})
               </span>
             </div>
-            <p className="text-xs text-slate-500">Tăng hiệu suất thu thập tu vi, nhập định vận công</p>
+            <div className="flex items-center justify-between">
+              <p className="text-xs text-slate-500">Tăng hiệu suất thu thập tu vi, nhập định vận công</p>
+              {/* Quota nhập định hàng ngày */}
+              <span className="text-xs">
+                <span className="text-slate-500">Hôm nay: </span>
+                <span className={`font-medium ${(cultivation?.dailyProgress?.meditationSeconds || 0) >= 1800
+                  ? 'text-red-400'
+                  : 'text-cyan-400'
+                  }`}>
+                  {Math.floor((cultivation?.dailyProgress?.meditationSeconds || 0) / 60)}/30 phút
+                </span>
+              </span>
+            </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {cultivationTechniques.filter(t => t.type === 'efficiency' || t.type === 'semi-auto' || t.type === 'semi_auto').map((tech) => {
@@ -959,6 +965,15 @@ const TechniquesTab = memo(function TechniquesTab({ practiceTechnique, notificat
                         }`}>
                         {tech.tier === 1 ? 'Phàm Phẩm' : tech.tier === 2 ? 'Hiếm Có' : 'Cực Phẩm'}
                       </span>
+                      {/* Tooltip về trần buff đan dược */}
+                      {isSemiAuto && (
+                        <span
+                          className="text-[10px] bg-orange-900/40 text-orange-300 px-2 py-1 rounded border border-orange-500/20 cursor-help"
+                          title="Nhập định chịu giới hạn buff đan dược tối đa x1.5 để cân bằng tiến độ"
+                        >
+                          Đan dược tối đa x1.5
+                        </span>
+                      )}
                     </div>
 
                     {/* Active session timer */}

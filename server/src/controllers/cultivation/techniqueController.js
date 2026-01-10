@@ -9,7 +9,8 @@ import {
     consumeExpCap,
     getCapByRealm,
     getPassiveExpPerMin,
-    getExpCapRemaining
+    getExpCapRemaining,
+    getDayKeyInBangkok
 } from "../../services/expCapService.js";
 import {
     CULTIVATION_TECHNIQUES,
@@ -29,6 +30,21 @@ const TECHNIQUES_CACHE_TTL = 10;
 
 // Cooldown between technique sessions (15 seconds)
 const TECHNIQUE_SESSION_COOLDOWN_MS = 15000;
+
+// ==================== ANTI-EXPLOIT CONSTANTS ====================
+// Daily quota: 30 phút = 1800 giây nhập định/ngày
+const MAX_DAILY_MEDITATION_SECONDS = 1800;
+// Minimum session time để claim (50% duration)
+const MIN_SESSION_PERCENT = 0.5;
+
+// Lua script để release lock an toàn (chỉ xóa nếu value khớp)
+const LUA_RELEASE_LOCK = `
+if redis.call("get", KEYS[1]) == ARGV[1] then
+    return redis.call("del", KEYS[1])
+else
+    return 0
+end
+`;
 
 // ============================================================
 // GET /techniques - Danh sách công pháp
@@ -85,13 +101,18 @@ export const listTechniques = async (req, res, next) => {
         });
 
         // Check active session còn hạn không
+        // Không cần grace period vì user có thể claim bất cứ lúc nào sau khi session bắt đầu
+        // Session chỉ bị coi là invalid nếu đã claim rồi
         let activeSession = null;
         if (cultivation.activeTechniqueSession?.sessionId) {
             const session = cultivation.activeTechniqueSession;
             const now = Date.now();
             const endsAt = new Date(session.endsAt).getTime();
 
-            if (!session.claimedAt && now < endsAt + 60000) { // +60s grace period
+            // Nếu chưa claim và session chưa quá 24 giờ thì vẫn trả về để user có thể claim
+            // Grace period 24h cho phép user claim dù treo app/chuyển tab lâu
+            const GRACE_PERIOD_MS = 24 * 60 * 60 * 1000; // 24 giờ
+            if (!session.claimedAt && now < endsAt + GRACE_PERIOD_MS) {
                 activeSession = {
                     sessionId: session.sessionId,
                     techniqueId: session.techniqueId,
@@ -284,11 +305,17 @@ export const equipTechnique = async (req, res, next) => {
 
 // ============================================================
 // POST /techniques/activate - Kích hoạt vận công (semi-auto)
+// ANTI-EXPLOIT: Atomic quota + Redis lock + state machine
 // ============================================================
 
 export const activateTechnique = async (req, res, next) => {
+    const userId = req.user.id;
+    const redis = getClient();
+    const lockKey = redisConfig.keyPrefix + `techLock:${userId}`;
+    const lockValue = crypto.randomUUID();
+    let lockAcquired = false;
+
     try {
-        const userId = req.user.id;
         const { techniqueId } = req.body;
 
         if (!techniqueId) {
@@ -307,10 +334,30 @@ export const activateTechnique = async (req, res, next) => {
             });
         }
 
-        const cultivation = await Cultivation.getOrCreate(userId);
+        // ==================== REDIS LOCK ====================
+        // Acquire lock để ngăn race condition từ multi-tab/multi-device
+        if (redis && isRedisConnected()) {
+            const lockResult = await redis.set(lockKey, lockValue, 'PX', 5000, 'NX');
+            if (lockResult !== 'OK') {
+                return res.status(429).json({
+                    success: false,
+                    message: "Đang xử lý yêu cầu khác, vui lòng thử lại"
+                });
+            }
+            lockAcquired = true;
+        }
 
-        // Check đã học chưa
-        const learned = (cultivation.learnedTechniques || [])
+        // ==================== PRE-CHECK: Đã học chưa ====================
+        // Quick check - sẽ được verify lại trong atomic update
+        const cultivationCheck = await Cultivation.findOne({ user: userId })
+            .select('learnedTechniques realmLevel')
+            .lean();
+
+        if (!cultivationCheck) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy thông tin tu luyện" });
+        }
+
+        const learned = (cultivationCheck.learnedTechniques || [])
             .some(t => t.techniqueId === techniqueId);
 
         if (!learned) {
@@ -320,64 +367,165 @@ export const activateTechnique = async (req, res, next) => {
             });
         }
 
-        // ==================== COOLDOWN CHECK (15s between sessions) ====================
-        const lastClaimTime = cultivation.lastTechniqueClaimTime ? new Date(cultivation.lastTechniqueClaimTime).getTime() : 0;
-        const now = Date.now();
-        const timeSinceLastClaim = now - lastClaimTime;
+        // ==================== ATOMIC QUOTA + SESSION CREATE ====================
+        const todayKey = getDayKeyInBangkok();
+        const now = new Date();
+        const durationSec = technique.durationSec;
+        const sessionId = crypto.randomUUID();
+        const endsAt = new Date(now.getTime() + durationSec * 1000);
 
-        if (timeSinceLastClaim < TECHNIQUE_SESSION_COOLDOWN_MS) {
-            const waitMs = TECHNIQUE_SESSION_COOLDOWN_MS - timeSinceLastClaim;
-            const waitSec = Math.ceil(waitMs / 1000);
-            return res.status(429).json({
-                success: false,
-                message: `Chưa hết cooldown, chờ ${waitSec}s để vận công tiếp`,
-                cooldownRemaining: waitSec
-            });
-        }
+        // Cooldown: lastTechniqueClaimTime stores the END of cooldown (claim time + 15s)
+        // So we check: now >= lastTechniqueClaimTime (cooldown expired)
+        const cooldownCutoff = now;
 
-        // Check không có session đang active
-        const existingSession = cultivation.activeTechniqueSession;
-        if (existingSession?.sessionId && !existingSession.claimedAt) {
-            const endsAt = new Date(existingSession.endsAt).getTime();
-            // Allow claim if session has ended (no strict time limit)
-            if (now < endsAt) {
+        // MongoDB Aggregation Pipeline Update:
+        // 1. Check no active session
+        // 2. Check cooldown expired
+        // 3. Reset quota if dayKey changed
+        // 4. Check quota remaining
+        // 5. Reserve quota + create session
+        const doc = await Cultivation.findOneAndUpdate(
+            {
+                user: userId,
+                // No active session (null or has been claimed)
+                $or: [
+                    { activeTechniqueSession: null },
+                    { 'activeTechniqueSession.sessionId': null },
+                    { 'activeTechniqueSession.claimedAt': { $ne: null } }
+                ]
+            },
+            [
+                // Stage 1: Reset dayKey và quota nếu ngày mới
+                {
+                    $set: {
+                        'dailyProgress.dayKey': todayKey,
+                        'dailyProgress.meditationSeconds': {
+                            $cond: [
+                                { $eq: ['$dailyProgress.dayKey', todayKey] },
+                                { $ifNull: ['$dailyProgress.meditationSeconds', 0] },
+                                0 // Reset to 0 if different day
+                            ]
+                        }
+                    }
+                },
+                // Stage 2: Check conditions and apply updates
+                {
+                    $set: {
+                        // Compute if can activate
+                        '_canActivate': {
+                            $and: [
+                                // Quota check: current + duration <= max
+                                {
+                                    $lte: [
+                                        { $add: ['$dailyProgress.meditationSeconds', durationSec] },
+                                        MAX_DAILY_MEDITATION_SECONDS
+                                    ]
+                                },
+                                // Cooldown check
+                                {
+                                    $or: [
+                                        { $eq: ['$lastTechniqueClaimTime', null] },
+                                        { $lte: ['$lastTechniqueClaimTime', cooldownCutoff] }
+                                    ]
+                                }
+                            ]
+                        }
+                    }
+                },
+                // Stage 3: Conditionally create session and reserve quota
+                {
+                    $set: {
+                        activeTechniqueSession: {
+                            $cond: [
+                                '$_canActivate',
+                                {
+                                    sessionId: sessionId,
+                                    techniqueId: techniqueId,
+                                    startedAt: now,
+                                    endsAt: endsAt,
+                                    durationSec: durationSec,
+                                    realmAtStart: '$realmLevel',
+                                    claimedAt: null
+                                },
+                                '$activeTechniqueSession' // Keep existing if can't activate
+                            ]
+                        },
+                        'dailyProgress.meditationSeconds': {
+                            $cond: [
+                                '$_canActivate',
+                                { $add: ['$dailyProgress.meditationSeconds', durationSec] },
+                                '$dailyProgress.meditationSeconds'
+                            ]
+                        }
+                    }
+                },
+                // Stage 4: Clean up temp field
+                {
+                    $unset: '_canActivate'
+                }
+            ],
+            { new: true }
+        );
+
+        // Check if update succeeded
+        if (!doc || doc.activeTechniqueSession?.sessionId !== sessionId) {
+            // Activation failed - determine reason
+            const current = await Cultivation.findOne({ user: userId })
+                .select('dailyProgress lastTechniqueClaimTime activeTechniqueSession')
+                .lean();
+
+            // Check if has active session
+            if (current?.activeTechniqueSession?.sessionId &&
+                !current.activeTechniqueSession.claimedAt) {
+                const sessionEndsAt = new Date(current.activeTechniqueSession.endsAt).getTime();
+                const timeRemaining = Math.max(0, Math.ceil((sessionEndsAt - Date.now()) / 1000));
                 return res.status(400).json({
                     success: false,
-                    message: "Đang trong trạng thái vận công, vui lòng đợi phiên kết thúc",
-                    activeSession: existingSession,
-                    timeRemaining: Math.ceil((endsAt - now) / 1000)
+                    message: "Đang trong trạng thái vận công",
+                    activeSession: current.activeTechniqueSession,
+                    timeRemaining
                 });
             }
-        }
 
-        // Check cap còn không (UX: chặn sớm nếu cap = 0)
-        const capLimit = getCapByRealm(cultivation.realmLevel);
-        const capRemaining = await getExpCapRemaining(userId, capLimit);
-        if (capRemaining <= 0) {
-            return res.status(429).json({
+            // Check cooldown
+            if (current?.lastTechniqueClaimTime &&
+                new Date(current.lastTechniqueClaimTime) > now) {
+                const waitMs = new Date(current.lastTechniqueClaimTime).getTime() - now.getTime();
+                const waitSec = Math.ceil(waitMs / 1000);
+                return res.status(429).json({
+                    success: false,
+                    message: `Chưa hết cooldown, chờ ${waitSec}s để vận công tiếp`,
+                    cooldownRemaining: waitSec
+                });
+            }
+
+            // Check quota
+            const usedSeconds = current?.dailyProgress?.meditationSeconds || 0;
+            const remainingSeconds = MAX_DAILY_MEDITATION_SECONDS - usedSeconds;
+            if (remainingSeconds < durationSec) {
+                return res.status(429).json({
+                    success: false,
+                    message: `Đã nhập định ${Math.floor(usedSeconds / 60)} phút hôm nay. Còn ${Math.floor(remainingSeconds / 60)} phút khả dụng.`,
+                    dailyQuota: {
+                        maxSeconds: MAX_DAILY_MEDITATION_SECONDS,
+                        usedSeconds,
+                        remainingSeconds
+                    }
+                });
+            }
+
+            // Unknown error
+            return res.status(500).json({
                 success: false,
-                message: "Linh khí đã cạn, vui lòng chờ hết chu kỳ 5 phút",
-                capRemaining: 0
+                message: "Không thể kích hoạt vận công, vui lòng thử lại"
             });
         }
 
-        // Tạo session mới
-        const sessionStart = new Date();
-        const sessionId = crypto.randomUUID();
-        const endsAt = new Date(sessionStart.getTime() + technique.durationSec * 1000);
+        // ==================== SUCCESS ====================
+        // Invalidate cache
+        invalidateCultivationCache(userId).catch(() => { });
 
-        cultivation.activeTechniqueSession = {
-            sessionId,
-            techniqueId,
-            startedAt: sessionStart,
-            endsAt,
-            realmAtStart: cultivation.realmLevel,
-            claimedAt: null
-        };
-
-        await saveWithRetry(cultivation);
-
-        // Estimate EXP: 1 giây = 1 click (dùng trung bình click EXP của cảnh giới)
+        // Estimate EXP
         const expRanges = {
             1: { min: 1, max: 3 },
             2: { min: 3, max: 10 },
@@ -394,49 +542,97 @@ export const activateTechnique = async (req, res, next) => {
             13: { min: 800, max: 1600 },
             14: { min: 1000, max: 2000 }
         };
-        const range = expRanges[cultivation.realmLevel] || expRanges[14];
+        const range = expRanges[doc.realmLevel] || expRanges[14];
         const avgClickExp = Math.floor((range.min + range.max) / 2);
-        const estimatedExp = Math.floor(
-            technique.durationSec * avgClickExp * technique.techniqueMultiplier
-        );
+        const estimatedExp = Math.floor(durationSec * avgClickExp * technique.techniqueMultiplier);
+
+        // Get remaining quota for response
+        const usedSeconds = doc.dailyProgress?.meditationSeconds || 0;
+        const remainingSeconds = MAX_DAILY_MEDITATION_SECONDS - usedSeconds;
+
+        // ==================== INVALIDATE TECHNIQUES CACHE ====================
+        // Khi activate thành công, xóa cache để lần load tiếp theo sẽ có activeSession
+        if (redis && isRedisConnected()) {
+            const cacheKey = `${redisConfig.keyPrefix} techniques:${userId} `;
+            redis.del(cacheKey).catch(() => { });
+        }
 
         res.json({
             success: true,
-            message: `Bắt đầu ${technique.name} `,
+            message: `Bắt đầu ${technique.name}`,
             data: {
                 sessionId,
                 techniqueId,
                 techniqueName: technique.name,
-                durationSec: technique.durationSec,
-                startedAt: sessionStart,
+                durationSec,
+                startedAt: now,
                 endsAt,
                 estimatedExp,
-                capRemaining
+                dailyQuota: {
+                    maxSeconds: MAX_DAILY_MEDITATION_SECONDS,
+                    usedSeconds,
+                    remainingSeconds
+                }
             }
         });
     } catch (error) {
         next(error);
+    } finally {
+        // ==================== RELEASE REDIS LOCK ====================
+        if (lockAcquired && redis && isRedisConnected()) {
+            try {
+                await redis.eval(LUA_RELEASE_LOCK, 1, lockKey, lockValue);
+            } catch (err) {
+                console.error('[TechniqueController] Failed to release lock:', err.message);
+            }
+        }
     }
 };
 
 // ============================================================
 // POST /techniques/claim - Thu thập EXP vận công
+// ANTI-EXPLOIT: Redis lock + min time + EXP cap + atomic gate
 // ============================================================
 
 export const claimTechnique = async (req, res, next) => {
+    const userId = req.user.id;
+    const redis = getClient();
+    const lockKey = redisConfig.keyPrefix + `techLock:${userId}`;
+    const lockValue = crypto.randomUUID();
+    let lockAcquired = false;
+
     try {
-        const userId = req.user.id;
         const { sessionId } = req.body;
 
         if (!sessionId) {
             return res.status(400).json({ success: false, message: "Thiếu sessionId" });
         }
 
-        const cultivation = await Cultivation.getOrCreate(userId);
+        // ==================== REDIS LOCK ====================
+        if (redis && isRedisConnected()) {
+            const lockResult = await redis.set(lockKey, lockValue, 'PX', 5000, 'NX');
+            if (lockResult !== 'OK') {
+                return res.status(429).json({
+                    success: false,
+                    message: "Đang xử lý yêu cầu khác, vui lòng thử lại"
+                });
+            }
+            lockAcquired = true;
+        }
+
+        // ==================== CHECK SESSION + MIN TIME ====================
+        const cultivation = await Cultivation.findOne({ user: userId })
+            .select('activeTechniqueSession lastTechniqueClaim realmLevel activeBoosts equipped')
+            .lean();
+
+        if (!cultivation) {
+            return res.status(404).json({ success: false, message: "Không tìm thấy thông tin tu luyện" });
+        }
+
         const session = cultivation.activeTechniqueSession;
 
-        // Validate session
-        if (!session?.sessionId) {
+        // Check idempotent first (cached result)
+        if (!session?.sessionId || session.sessionId !== sessionId) {
             const cached = cultivation.lastTechniqueClaim;
             if (cached?.sessionId === sessionId) {
                 return res.json({
@@ -445,38 +641,19 @@ export const claimTechnique = async (req, res, next) => {
                     data: {
                         allowedExp: cached.allowedExp,
                         requestedExp: cached.requestedExp,
+                        elapsedSec: cached.elapsedSec,
                         claimedAt: cached.claimedAt
                     }
                 });
             }
             return res.status(400).json({
                 success: false,
-                message: "Không có phiên vận công nào đang hoạt động"
+                message: "Không có phiên vận công nào đang hoạt động hoặc sessionId không hợp lệ"
             });
         }
 
-        if (session.sessionId !== sessionId) {
-            const cached = cultivation.lastTechniqueClaim;
-            if (cached?.sessionId === sessionId) {
-                return res.json({
-                    success: true,
-                    alreadyClaimed: true,
-                    data: {
-                        allowedExp: cached.allowedExp,
-                        requestedExp: cached.requestedExp,
-                        claimedAt: cached.claimedAt
-                    }
-                });
-            }
-            return res.status(400).json({
-                success: false,
-                message: "SessionId không hợp lệ"
-            });
-        }
-
-        // Check idempotent (đã claim rồi)
+        // Check already claimed
         if (session.claimedAt) {
-            // Return cached result
             const cached = cultivation.lastTechniqueClaim;
             if (cached?.sessionId === sessionId) {
                 return res.json({
@@ -485,6 +662,7 @@ export const claimTechnique = async (req, res, next) => {
                     data: {
                         allowedExp: cached.allowedExp,
                         requestedExp: cached.requestedExp,
+                        elapsedSec: cached.elapsedSec,
                         claimedAt: cached.claimedAt
                     }
                 });
@@ -492,24 +670,33 @@ export const claimTechnique = async (req, res, next) => {
             return res.json({ success: true, alreadyClaimed: true });
         }
 
+        // ==================== MIN TIME CHECK (50% duration) ====================
         const technique = getTechniqueById(session.techniqueId);
         if (!technique) {
             return res.status(400).json({ success: false, message: "Công pháp không hợp lệ" });
         }
 
-        // Tính EXP (continuous, floor elapsedSec): 1 giây = 1 click
-        // Đảm bảo tối thiểu 1 giây để tránh 0 exp khi claim sớm
         const now = Date.now();
         const startedAt = new Date(session.startedAt).getTime();
-        const endsAt = new Date(session.endsAt).getTime();
-        const elapsedSec = Math.max(1, Math.min(
-            technique.durationSec,
-            Math.floor((now - startedAt) / 1000)
-        ));
+        const durationSec = session.durationSec || technique.durationSec;
+        const minSecRequired = Math.floor(durationSec * MIN_SESSION_PERCENT);
+        const elapsedSec = Math.floor((now - startedAt) / 1000);
 
-        console.log(`[ClaimTechnique] userId=${userId}, technique=${technique.name}, elapsedSec=${elapsedSec}, duration=${technique.durationSec}, realmAtStart=${session.realmAtStart}`);
+        if (elapsedSec < minSecRequired) {
+            const waitSec = minSecRequired - elapsedSec;
+            return res.status(400).json({
+                success: false,
+                message: `Cần tối thiểu ${minSecRequired}s nhập định. Còn ${waitSec}s nữa.`,
+                minRequired: minSecRequired,
+                elapsed: elapsedSec,
+                remaining: waitSec
+            });
+        }
 
-        // Dùng click EXP trung bình theo cảnh giới
+        // Cap elapsed to duration
+        const effectiveElapsedSec = Math.min(elapsedSec, durationSec);
+
+        // ==================== CALCULATE EXP ====================
         const expRanges = {
             1: { min: 1, max: 3 },
             2: { min: 3, max: 10 },
@@ -526,92 +713,92 @@ export const claimTechnique = async (req, res, next) => {
             13: { min: 800, max: 1600 },
             14: { min: 1000, max: 2000 }
         };
-        const range = expRanges[session.realmAtStart] || expRanges[14];
+        const realmAtStart = session.realmAtStart || cultivation.realmLevel;
+        const range = expRanges[realmAtStart] || expRanges[14];
         const avgClickExp = Math.floor((range.min + range.max) / 2);
-        const baseExp = elapsedSec * avgClickExp;
+        const baseExp = effectiveElapsedSec * avgClickExp;
 
-        console.log(`[ClaimTechnique] range=${JSON.stringify(range)}, avgClickExp=${avgClickExp}, baseExp=${baseExp}`);
-
-        // Apply multipliers
+        // Apply technique multiplier
         let multipliedExp = Math.floor(baseExp * technique.techniqueMultiplier);
 
-        // Get active boosts
-        const activeBoosts = (cultivation.activeBoosts || []).filter(b => b.expiresAt > new Date());
+        // Apply boosts (với trần cho technique để không phá balance)
+        // Đan dược 5x vẫn full hiệu quả ở dungeon/YinYang, nhưng nhập định chỉ được 1.5x max
+        const TECHNIQUE_MAX_BOOST_MULTIPLIER = 1.5;
+        const activeBoosts = (cultivation.activeBoosts || []).filter(b => new Date(b.expiresAt) > new Date());
         let boostMultiplier = 1;
         for (const boost of activeBoosts) {
             if (boost.type === 'exp' || boost.type === 'exp_boost') {
                 boostMultiplier = Math.max(boostMultiplier, boost.multiplier);
             }
         }
+        // Cap multiplier cho technique claims
+        const originalBoost = boostMultiplier;
+        boostMultiplier = Math.min(boostMultiplier, TECHNIQUE_MAX_BOOST_MULTIPLIER);
+        multipliedExp = Math.floor(multipliedExp * boostMultiplier);
 
-        // Pet bonus
-        const petBonuses = cultivation.getPetBonuses?.() || { expBonus: 0 };
-        const petMultiplier = petBonuses.expBonus > 0 ? 1 + petBonuses.expBonus : 1;
+        console.log(`[ClaimTechnique] userId=${userId}, technique=${technique.name}, elapsed=${effectiveElapsedSec}s, baseExp=${baseExp}, multipliedExp=${multipliedExp}`);
 
-        multipliedExp = Math.floor(multipliedExp * boostMultiplier * petMultiplier);
-
-        console.log(`[ClaimTechnique] multiplier=${technique.techniqueMultiplier}, boostMult=${boostMultiplier}, petMult=${petMultiplier}, multipliedExp=${multipliedExp}`);
-
-        // ==================== NO CAP FOR TECHNIQUE CLAIMS ====================
-        // Semi-auto techniques require time investment (30-60s meditation)
-        // Unlike spam clicking, this is a deliberate action with cooldown
-        // Therefore, we don't apply yinyang exp cap here
+        // ==================== NO EXP CAP FOR TECHNIQUE CLAIMS ====================
+        // Technique đã có các lớp anti-exploit:
+        // 1. Quota 30 phút/ngày (giới hạn tổng reward/ngày)
+        // 2. Min 50% duration mới được claim (không claim sớm)
+        // 3. Cooldown 15s + Redis lock + Mongo atomic (chặn spam, race)
+        // 4. Time-gated (30/60s) - auto click không giúp nhanh hơn
+        // => EXP cap 5 phút trở thành thừa và chỉ làm UX xấu ở realm cao
         const allowedExp = multipliedExp;
 
-        console.log(`[ClaimTechnique] FINAL allowedExp=${allowedExp}, expBefore=${cultivation.exp}`);
+        console.log(`[ClaimTechnique] technique claim (no cap applied), allowedExp=${allowedExp}`);
 
-        // Calculate cooldown end time (session end + 15s cooldown)
-        const endsAtTimestamp = session.endsAt ? new Date(session.endsAt).getTime() : Date.now();
-        const cooldownEndTime = endsAtTimestamp + TECHNIQUE_SESSION_COOLDOWN_MS;
+        // ==================== ATOMIC CLAIM (Phase A: mark claimed) ====================
+        const claimTime = new Date();
+        // Cooldown từ actual claim time (NOW + 15s), không phải session end
+        const cooldownEndTime = new Date(claimTime.getTime() + TECHNIQUE_SESSION_COOLDOWN_MS);
 
-        console.log(`[ClaimTechnique] Setting cooldown: endsAt=${session.endsAt}, cooldownEnd=${new Date(cooldownEndTime)}`);
-
-        // Atomic update with dataVersion increment
-        const updateOps = {
-            $inc: {
-                exp: allowedExp,
-                dataVersion: 1
-            },
-            $push: {
-                expLog: {
-                    $each: [{
-                        amount: allowedExp,
-                        source: 'technique_claim',
-                        description: `${technique.name} (${elapsedSec}s)`,
-                        createdAt: new Date()
-                    }],
-                    $slice: -100
-                }
-            },
-            $set: {
-                lastTechniqueClaim: {
-                    sessionId,
-                    techniqueId: session.techniqueId,
-                    allowedExp,
-                    requestedExp: multipliedExp,
-                    claimedAt: new Date()
-                },
-                // Set cooldown from SESSION END TIME
-                lastTechniqueClaimTime: new Date(cooldownEndTime)
-            },
-            $unset: {
-                activeTechniqueSession: ''
-            }
-        };
-
-        const updatedCultivation = await Cultivation.findOneAndUpdate(
+        const updateResult = await Cultivation.findOneAndUpdate(
             {
                 user: userId,
-                "activeTechniqueSession.sessionId": sessionId,
-                "activeTechniqueSession.claimedAt": null
+                'activeTechniqueSession.sessionId': sessionId,
+                'activeTechniqueSession.claimedAt': null
             },
-            updateOps,
+            {
+                $set: {
+                    lastTechniqueClaim: {
+                        sessionId,
+                        techniqueId: session.techniqueId,
+                        allowedExp,
+                        requestedExp: multipliedExp,
+                        durationSec,
+                        elapsedSec: effectiveElapsedSec,
+                        claimedAt: claimTime
+                    },
+                    lastTechniqueClaimTime: cooldownEndTime
+                },
+                $unset: {
+                    activeTechniqueSession: ''
+                },
+                $inc: {
+                    exp: allowedExp,
+                    dataVersion: 1
+                },
+                $push: {
+                    expLog: {
+                        $each: [{
+                            amount: allowedExp,
+                            source: 'technique_claim',
+                            description: `${technique.name} (${effectiveElapsedSec}s)`,
+                            createdAt: claimTime
+                        }],
+                        $slice: -100
+                    }
+                }
+            },
             { new: true }
         );
 
-        if (!updatedCultivation) {
+        if (!updateResult) {
+            // Idempotent check
             const latest = await Cultivation.findOne({ user: userId })
-                .select("lastTechniqueClaim")
+                .select('lastTechniqueClaim')
                 .lean();
 
             if (latest?.lastTechniqueClaim?.sessionId === sessionId) {
@@ -621,6 +808,7 @@ export const claimTechnique = async (req, res, next) => {
                     data: {
                         allowedExp: latest.lastTechniqueClaim.allowedExp,
                         requestedExp: latest.lastTechniqueClaim.requestedExp,
+                        elapsedSec: latest.lastTechniqueClaim.elapsedSec,
                         claimedAt: latest.lastTechniqueClaim.claimedAt
                     }
                 });
@@ -632,49 +820,59 @@ export const claimTechnique = async (req, res, next) => {
             });
         }
 
-        // Update technique lastPracticedAt
-        const learnedTechnique = (updatedCultivation.learnedTechniques || [])
-            .find(t => t.techniqueId === session.techniqueId);
-        if (learnedTechnique) {
-            learnedTechnique.lastPracticedAt = new Date();
-            await saveWithRetry(updatedCultivation);
-        }
-
+        // ==================== SUCCESS ====================
         // Invalidate cache
         invalidateCultivationCache(userId).catch(() => { });
+
+        // ==================== INVALIDATE TECHNIQUES CACHE ====================
+        // Sau claim, xóa cache để lần load tiếp theo sẽ không có activeSession nữa
+        if (redis && isRedisConnected()) {
+            const techCacheKey = `${redisConfig.keyPrefix} techniques:${userId} `;
+            redis.del(techCacheKey).catch(() => { });
+        }
 
         // Check if client requested patch mode
         const isPatchMode = req.query.mode === 'patch';
 
         if (isPatchMode) {
-            // Lightweight patch response
             return res.json({
                 success: true,
                 mode: 'patch',
-                dataVersion: updatedCultivation.dataVersion,
-                message: allowedExp > 0 ? `+${allowedExp} Tu Vi` : "Không nhận được tu vi",
+                dataVersion: updateResult.dataVersion,
+                message: allowedExp > 0 ? `+${allowedExp} Tu Vi` : "Không nhận được tu vi (đã hết cap)",
                 data: {
                     allowedExp,
                     requestedExp: multipliedExp,
-                    elapsedSec
+                    elapsedSec: effectiveElapsedSec,
+                    capApplied: allowedExp < multipliedExp
                 },
-                patch: formatLightweightCultivationPatch(updatedCultivation)
+                patch: formatLightweightCultivationPatch(updateResult)
             });
         }
 
-        // Legacy full response
+        // Full response
         res.json({
             success: true,
-            message: allowedExp > 0 ? `+${allowedExp} Tu Vi` : "Không nhận được tu vi",
+            message: allowedExp > 0 ? `+${allowedExp} Tu Vi` : "Không nhận được tu vi (đã hết cap)",
             data: {
                 allowedExp,
                 requestedExp: multipliedExp,
-                elapsedSec,
-                cultivation: await formatCultivationResponse(updatedCultivation)
+                elapsedSec: effectiveElapsedSec,
+                capApplied: allowedExp < multipliedExp,
+                cultivation: await formatCultivationResponse(updateResult)
             }
         });
     } catch (error) {
         next(error);
+    } finally {
+        // ==================== RELEASE REDIS LOCK ====================
+        if (lockAcquired && redis && isRedisConnected()) {
+            try {
+                await redis.eval(LUA_RELEASE_LOCK, 1, lockKey, lockValue);
+            } catch (err) {
+                console.error('[TechniqueController] Failed to release claim lock:', err.message);
+            }
+        }
     }
 };
 
