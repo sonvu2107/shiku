@@ -319,12 +319,11 @@ const InventoryTab = memo(function InventoryTab() {
     }
   };
 
-  // Check if item supports bulk usage (stackable consumables, not lootbox)
+  // Check if item supports bulk usage (stackable consumables)
   const isBulkUsable = (item) => {
     if (!['exp_boost', 'consumable'].includes(item.type)) return false;
-    // Check if item is lootbox (from SHOP_ITEM_DATA or metadata)
+    // Check if item is one-time purchase (can only use 1 at a time)
     const shopItem = SHOP_ITEM_DATA[item.itemId];
-    if (shopItem?.isLootBox || item.metadata?.isLootBox) return false;
     if (shopItem?.oneTimePurchase || item.metadata?.oneTimePurchase) return false;
     return (item.quantity || 1) > 1; // Only show modal if has more than 1
   };
@@ -337,7 +336,7 @@ const InventoryTab = memo(function InventoryTab() {
   // Update quantity in modal
   const setModalQuantity = (value) => {
     const maxQty = useModal?.item?.quantity || 1;
-    const qty = Math.max(1, Math.min(99, Math.min(maxQty, Math.floor(Number(value)) || 1)));
+    const qty = Math.max(1, Math.min(999, Math.min(maxQty, Math.floor(Number(value)) || 1)));
     setUseModal(prev => prev ? { ...prev, quantity: qty } : null);
   };
 
@@ -395,9 +394,15 @@ const InventoryTab = memo(function InventoryTab() {
           }
         }
 
-        // Kiểm tra nếu là loot box result
-        if (result?.reward?.type === 'lootbox' && result?.reward?.droppedItem) {
-          setLootboxResult(result.reward.droppedItem);
+        // Kiểm tra nếu là loot box result (single or bulk)
+        if (result?.reward?.droppedItem) {
+          if (result.reward.type === 'lootbox' || result.reward.type === 'lootbox_bulk') {
+            // For bulk lootbox, show first dropped item (or best one)
+            const itemToShow = result.reward.droppedItem;
+            if (itemToShow) {
+              setLootboxResult(itemToShow);
+            }
+          }
         }
       }
     } finally {
@@ -1277,6 +1282,16 @@ const InventoryTab = memo(function InventoryTab() {
           </motion.div>
         </div>
       )}
+
+      {/* Lootbox Result Modal */}
+      <AnimatePresence>
+        {lootboxResult && (
+          <LootboxResultModal
+            result={lootboxResult}
+            onClose={() => setLootboxResult(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 });

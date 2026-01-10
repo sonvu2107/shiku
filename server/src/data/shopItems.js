@@ -107,10 +107,10 @@ export const SHOP_ITEMS = [
     { id: "effect_galaxy", name: "Tinh Hà Hiệu Ứng", type: ITEM_TYPES.PROFILE_EFFECT, price: 1200, description: "Hiệu ứng ngân hà huyền bí", rarity: "legendary" },
 
     // ==================== ĐAN DƯỢC (EXP_BOOST) ====================
-    { id: "exp_boost_2x", name: "Tu Luyện Đan (2x)", type: ITEM_TYPES.EXP_BOOST, price: 200, description: "Tăng gấp đôi exp trong 24h", duration: 24, multiplier: 2, rarity: "uncommon", img: "/assets/danduoc.jpg" },
-    { id: "exp_boost_3x", name: "Thiên Tài Đan (3x)", type: ITEM_TYPES.EXP_BOOST, price: 500, description: "Tăng gấp 3 exp trong 24h", duration: 24, multiplier: 3, rarity: "rare", img: "/assets/danduoc.jpg" },
-    { id: "exp_boost_5x", name: "Thần Đan (5x)", type: ITEM_TYPES.EXP_BOOST, price: 1000, description: "Tăng gấp 5 exp trong 12h", duration: 12, multiplier: 5, rarity: "epic", img: "/assets/danduoc.jpg" },
-    { id: "exp_boost_mini", name: "Tiểu Hoàn Đan", type: ITEM_TYPES.EXP_BOOST, price: 50, description: "Tăng 50% exp trong 6h", duration: 6, multiplier: 1.5, rarity: "common", img: "/assets/danduoc.jpg" },
+    { id: "exp_boost_2x", name: "Tu Luyện Đan (2x)", type: ITEM_TYPES.EXP_BOOST, price: 200, description: "Tăng gấp đôi tu vi trong 24h", duration: 24, multiplier: 2, rarity: "uncommon", img: "/assets/danduoc.jpg" },
+    { id: "exp_boost_3x", name: "Thiên Tài Đan (3x)", type: ITEM_TYPES.EXP_BOOST, price: 500, description: "Tăng gấp 3 tu vi trong 24h", duration: 24, multiplier: 3, rarity: "rare", img: "/assets/danduoc.jpg" },
+    { id: "exp_boost_5x", name: "Thần Đan (5x)", type: ITEM_TYPES.EXP_BOOST, price: 1000, description: "Tăng gấp 5 tu vi trong 12h", duration: 12, multiplier: 5, rarity: "epic", img: "/assets/danduoc.jpg" },
+    { id: "exp_boost_mini", name: "Tiểu Hoàn Đan", type: ITEM_TYPES.EXP_BOOST, price: 50, description: "Tăng 50% tu vi trong 6h", duration: 6, multiplier: 1.5, rarity: "common", img: "/assets/danduoc.jpg" },
 
     // ==================== ĐAN DƯỢC ĐỘ KIẾP (BREAKTHROUGH_BOOST) ====================
     { id: "breakthrough_pill_small", name: "Tiểu Độ Kiếp Đan", type: ITEM_TYPES.BREAKTHROUGH_BOOST, price: 300, description: "Tăng 10% tỷ lệ độ kiếp (1 lần sử dụng)", breakthroughBonus: 10, img: "/assets/danduoc.jpg", rarity: "uncommon" },
@@ -121,12 +121,12 @@ export const SHOP_ITEMS = [
     // ==================== VẬT PHẨM TIÊU HAO (CONSUMABLE) ====================
     { id: "spirit_stone_pack_small", name: "Tiểu Linh Thạch Túi", type: ITEM_TYPES.CONSUMABLE, price: 0, description: "Nhận 50 linh thạch (chỉ mua bằng điểm)", spiritStoneReward: 50, rarity: "common" },
     { id: "lucky_charm", name: "Phúc Lộc Bùa", type: ITEM_TYPES.CONSUMABLE, price: 100, description: "Tăng 20% linh thạch nhận được trong 24h", duration: 24, spiritStoneBonus: 0.2, rarity: "uncommon" },
-    { id: "meditation_incense", name: "Thiền Định Hương", type: ITEM_TYPES.CONSUMABLE, price: 80, description: "Nhận ngay 100 exp", expReward: 100, rarity: "common" },
-    { id: "cultivation_manual", name: "Tu Luyện Bí Kíp", type: ITEM_TYPES.CONSUMABLE, price: 150, description: "Nhận ngay 300 exp", expReward: 300, rarity: "uncommon" },
-    { id: "heavenly_scripture", name: "Thiên Thư", type: ITEM_TYPES.CONSUMABLE, price: 500, description: "Nhận ngay 1000 exp", expReward: 1000, rarity: "rare" },
+    { id: "meditation_incense", name: "Thiền Định Hương", type: ITEM_TYPES.CONSUMABLE, price: 80, description: "Nhận ngay 100 tu vi", expReward: 100, rarity: "common" },
+    { id: "cultivation_manual", name: "Tu Luyện Bí Kíp", type: ITEM_TYPES.CONSUMABLE, price: 150, description: "Nhận ngay 300 tu vi", expReward: 300, rarity: "uncommon" },
+    { id: "heavenly_scripture", name: "Thiên Thư", type: ITEM_TYPES.CONSUMABLE, price: 500, description: "Nhận ngay 1000 tu vi", expReward: 1000, rarity: "rare" },
     { id: "quest_refresh", name: "Nhiệm Vụ Lệnh", type: ITEM_TYPES.CONSUMABLE, price: 150, description: "Làm mới nhiệm vụ hàng ngày", rarity: "uncommon" },
     { id: "streak_protector", name: "Hộ Mệnh Phù", type: ITEM_TYPES.CONSUMABLE, price: 300, description: "Bảo vệ streak đăng nhập 1 lần", rarity: "rare" },
-    { id: "weekly_pack", name: "Tuần Lễ Bảo Rương", type: ITEM_TYPES.CONSUMABLE, price: 1000, description: "Mở ra nhận ngẫu nhiên 1 vật phẩm Rare trở lên", rarity: "epic", isLootBox: true, lootBoxConfig: { minRarity: "rare", dropTypes: ["title", "badge", "avatar_frame", "profile_effect", "pet", "mount", "technique"] } },
+    { id: "weekly_pack", name: "Tuần Lễ Bảo Rương", type: ITEM_TYPES.CONSUMABLE, price: 1000, description: "Mở ra nhận ngẫu nhiên 1 vật phẩm Cực Phẩm trở lên", rarity: "epic", isLootBox: true, lootBoxConfig: { minRarity: "rare", dropTypes: ["title", "badge", "avatar_frame", "profile_effect", "pet", "mount", "technique"] } },
     { id: "craft_catalyst_luck", name: "Thiên Địa Tạo Hóa Đan", type: ITEM_TYPES.CONSUMABLE, price: 500, description: "Vật phẩm huyền bí giúp gia tăng 20% (x1.2) cơ hội ra đồ xịn nhất khi luyện khí (có giới hạn)", rarity: "epic", img: "/assets/danduoc.jpg" },
 
     // ==================== GÓI TÂN THỦ (MUA 1 LẦN) ====================
@@ -149,16 +149,16 @@ export const SHOP_ITEMS = [
     },
 
     // ==================== LINH THÚ (PET) ====================
-    { id: "pet_fox", name: "Cửu Vĩ Hồ", type: ITEM_TYPES.PET, price: 800, description: "Linh thú hồ ly 9 đuôi, tăng 5% exp", expBonus: 0.05, rarity: "epic" },
-    { id: "pet_dragon_baby", name: "Tiểu Long", type: ITEM_TYPES.PET, price: 1500, description: "Rồng con đáng yêu, tăng 10% exp", expBonus: 0.1, rarity: "legendary" },
+    { id: "pet_fox", name: "Cửu Vĩ Hồ", type: ITEM_TYPES.PET, price: 800, description: "Linh thú hồ ly 9 đuôi, tăng 5% tu vi", expBonus: 0.05, rarity: "epic" },
+    { id: "pet_dragon_baby", name: "Tiểu Long", type: ITEM_TYPES.PET, price: 1500, description: "Rồng con đáng yêu, tăng 10% tu vi", expBonus: 0.1, rarity: "legendary" },
     { id: "pet_phoenix_baby", name: "Tiểu Phượng", type: ITEM_TYPES.PET, price: 1500, description: "Phượng hoàng con, tăng 10% linh thạch", spiritStoneBonus: 0.1, rarity: "legendary" },
     { id: "pet_turtle", name: "Huyền Vũ Quy", type: ITEM_TYPES.PET, price: 600, description: "Rùa thần, bảo vệ streak đăng nhập", rarity: "rare" },
-    { id: "pet_crane", name: "Tiên Hạc", type: ITEM_TYPES.PET, price: 700, description: "Hạc tiên, tăng 8% exp nhiệm vụ", questExpBonus: 0.08, rarity: "epic" },
+    { id: "pet_crane", name: "Tiên Hạc", type: ITEM_TYPES.PET, price: 700, description: "Hạc tiên, tăng 8% tu vi nhiệm vụ", questExpBonus: 0.08, rarity: "epic" },
     { id: "pet_cat", name: "Chiêu Tài Miêu", type: ITEM_TYPES.PET, price: 400, description: "Mèo may mắn, tăng 5% linh thạch", spiritStoneBonus: 0.05, rarity: "rare" },
     { id: "pet_rabbit", name: "Ngọc Thố", type: ITEM_TYPES.PET, price: 350, description: "Thỏ ngọc từ cung trăng", rarity: "rare" },
 
     // ==================== LINH THÚ PHẦN THƯỞNG RANK (KHÔNG BÁN) ====================
-    { id: "pet_legendary", name: "Hồng Mông Cổ Thú", type: ITEM_TYPES.PET, price: 0, description: "Linh thú thần cấp từ Hồng Mông - Tăng 15% exp và 10% linh thạch", expBonus: 0.15, spiritStoneBonus: 0.1, rarity: "legendary", exclusive: true, rankTier: 9 },
+    { id: "pet_legendary", name: "Hồng Mông Cổ Thú", type: ITEM_TYPES.PET, price: 0, description: "Linh thú thần cấp từ Hồng Mông - Tăng 15% tu vi và 10% linh thạch", expBonus: 0.15, spiritStoneBonus: 0.1, rarity: "legendary", exclusive: true, rankTier: 9 },
 
     // ==================== LINH THÚ CƯỠI (MOUNT) ====================
     { id: "mount_cloud", name: "Thần Vân", type: ITEM_TYPES.MOUNT, price: 1000, description: "Đám mây thần kỳ, tăng 15% Né Tránh", rarity: "epic", stats: { dodge: 0.15 } },

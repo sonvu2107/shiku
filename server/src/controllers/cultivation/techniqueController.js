@@ -928,9 +928,15 @@ export const getCombatSlots = async (req, res, next) => {
         const equippedSlots = cultivation.equippedCombatTechniques || [];
 
         // Get available techniques (learned + có skill) - deduplicate by techniqueId
+        // Search in both TECHNIQUES_MAP (shopItems) and CULTIVATION_TECHNIQUES
         const techniqueMap = new Map();
         (cultivation.learnedTechniques || []).forEach(learned => {
-            const technique = TECHNIQUES_MAP.get(learned.techniqueId);
+            // Try both sources: shopItems first, then cultivationTechniques
+            let technique = TECHNIQUES_MAP.get(learned.techniqueId);
+            if (!technique) {
+                technique = getTechniqueById(learned.techniqueId);
+            }
+
             // Include techniques that have skill OR are combat techniques
             if (technique && (technique.skill || technique.type === 'combat') && !techniqueMap.has(learned.techniqueId)) {
                 // Map tier to rarity for combat techniques
@@ -1021,8 +1027,11 @@ export const equipCombatSlot = async (req, res, next) => {
             });
         }
 
-        // Check if technique has skill
-        const technique = TECHNIQUES_MAP.get(techniqueId);
+        // Check if technique has skill - search in both sources
+        let technique = TECHNIQUES_MAP.get(techniqueId);
+        if (!technique) {
+            technique = getTechniqueById(techniqueId);
+        }
         if (!technique || !technique.skill) {
             return res.status(400).json({
                 success: false,

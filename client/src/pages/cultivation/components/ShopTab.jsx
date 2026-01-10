@@ -178,12 +178,12 @@ const ShopTab = memo(function ShopTab() {
     exp_boost: {
       title: 'Đan Dược Tu Luyện',
       affects: [
-        'Thu thập tu vi thụ động (Passive)',
-        'Phần thưởng Bí Cảnh (Dungeon) - Tu Vi',
-        'Phiên luyện công pháp (Practice Session)'
+        'Thu thập tu vi thụ động',
+        'Phần thưởng Bí Cảnh - Tu Vi',
+        'Nhập định công pháp'
       ],
       notes: [
-        'Không áp dụng cho Âm Dương click trực tiếp'
+        'Không áp dụng cho Âm Dương trực tiếp'
       ]
     },
     breakthrough_boost: {
@@ -196,12 +196,12 @@ const ShopTab = memo(function ShopTab() {
       ]
     },
     spirit_stones: {
-      title: 'Bùa/Linh Thạch (Lucky Charm)',
+      title: 'Bùa/Linh Thạch',
       affects: [
-        'Phần thưởng Bí Cảnh (Dungeon) - Linh Thạch'
+        'Phần thưởng Bí Cảnh - Linh Thạch'
       ],
       notes: [
-        'Không áp dụng cho Luận Võ Tiên-Ma (Arena PvP)',
+        'Không áp dụng cho Luận Võ Tiên-Ma',
         'Không áp dụng cho thưởng nhiệm vụ hay Tu Vi thụ động'
       ]
     }

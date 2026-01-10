@@ -302,10 +302,10 @@ export const useItem = async (req, res, next) => {
 
         // Validate quantity
         const qty = Math.floor(Number(quantity)) || 1;
-        if (qty < 1 || qty > 99) {
+        if (qty < 1 || qty > 999) {
             return res.status(400).json({
                 success: false,
-                message: "Số lượng không hợp lệ (1-99)"
+                message: "Số lượng không hợp lệ (1-999)"
             });
         }
 
@@ -360,8 +360,8 @@ export const useItem = async (req, res, next) => {
             });
         }
 
-        // Loot boxes and one-time items can only be used 1 at a time
-        if ((itemData.isLootBox || itemData.oneTimePurchase) && qty > 1) {
+        // One-time items can only be used 1 at a time (but lootboxes can be opened in bulk)
+        if (itemData.oneTimePurchase && qty > 1) {
             return res.status(400).json({
                 success: false,
                 message: "Vật phẩm này chỉ có thể dùng từng cái một"
@@ -406,81 +406,112 @@ export const useItem = async (req, res, next) => {
                 break;
 
             case 'consumable':
-                // Handle loot box items (only 1 at a time - already validated above)
+                // Handle loot box items - now supports bulk opening
                 if (itemData.isLootBox) {
                     const config = itemData.lootBoxConfig;
                     const rarityOrder = ['common', 'uncommon', 'rare', 'epic', 'legendary'];
                     const minRarityIndex = rarityOrder.indexOf(config.minRarity || 'rare');
 
-                    // Get all eligible items (rare+ from allowed types, not already owned)
-                    const eligibleItems = SHOP_ITEMS.filter(shopItem => {
-                        // Check rarity
-                        const itemRarityIndex = rarityOrder.indexOf(shopItem.rarity || 'common');
-                        if (itemRarityIndex < minRarityIndex) return false;
+                    // Track all drops for bulk opening
+                    const allDrops = [];
+                    let totalSpiritStonesFallback = 0;
 
-                        // Check type
-                        if (!config.dropTypes.includes(shopItem.type)) return false;
+                    for (let openCount = 0; openCount < qty; openCount++) {
+                        // Re-evaluate eligible items each iteration (some may be acquired)
+                        const eligibleItems = SHOP_ITEMS.filter(shopItem => {
+                            const itemRarityIndex = rarityOrder.indexOf(shopItem.rarity || 'common');
+                            if (itemRarityIndex < minRarityIndex) return false;
+                            if (!config.dropTypes.includes(shopItem.type)) return false;
 
-                        // Check if already owned (for non-stackable items)
-                        if (shopItem.type === 'technique') {
-                            const alreadyLearned = cultivation.learnedTechniques?.some(t => t.techniqueId === shopItem.id);
-                            if (alreadyLearned) return false;
-                        } else {
-                            const alreadyOwned = cultivation.inventory.some(i => i.itemId === shopItem.id);
-                            if (alreadyOwned) return false;
-                        }
-
-                        return true;
-                    });
-
-                    if (eligibleItems.length === 0) {
-                        // If player owns all eligible items, give spirit stones instead
-                        const spiritStoneReward = 500;
-                        cultivation.spiritStones += spiritStoneReward;
-                        cultivation.totalSpiritStonesEarned += spiritStoneReward;
-                        message = `Bạn đã sở hữu tất cả vật phẩm! Nhận được ${spiritStoneReward} linh thạch thay thế`;
-                        reward = { type: 'spiritStones', amount: spiritStoneReward };
-                    } else {
-                        // Weighted random: higher rarity = lower chance
-                        const weights = { rare: 60, epic: 30, legendary: 10 };
-                        const weightedItems = [];
-                        eligibleItems.forEach(item => {
-                            const weight = weights[item.rarity] || 30;
-                            for (let i = 0; i < weight; i++) {
-                                weightedItems.push(item);
+                            if (shopItem.type === 'technique') {
+                                const alreadyLearned = cultivation.learnedTechniques?.some(t => t.techniqueId === shopItem.id);
+                                if (alreadyLearned) return false;
+                            } else {
+                                // For non-stackable unique items, check if already owned
+                                const isUnique = ['title', 'badge', 'avatar_frame', 'profile_effect', 'pet', 'mount'].includes(shopItem.type);
+                                if (isUnique) {
+                                    const alreadyOwned = cultivation.inventory.some(i => i.itemId === shopItem.id);
+                                    if (alreadyOwned) return false;
+                                }
                             }
+                            return true;
                         });
 
-                        const droppedItem = weightedItems[Math.floor(Math.random() * weightedItems.length)];
-
-                        // Add dropped item to inventory or learn technique
-                        if (droppedItem.type === 'technique') {
-                            cultivation.learnedTechniques.push({
-                                techniqueId: droppedItem.id,
-                                level: 1,
-                                learnedAt: new Date()
-                            });
-                            message = `Chúc mừng! Bạn đã học được công pháp [${droppedItem.rarity.toUpperCase()}] ${droppedItem.name}!`;
+                        if (eligibleItems.length === 0) {
+                            // Fallback: give spirit stones
+                            totalSpiritStonesFallback += 500;
                         } else {
-                            // Check if item already exists in inventory (for stackable items)
-                            const existingItem = cultivation.inventory.find(i => i.itemId === droppedItem.id);
-                            if (existingItem) {
-                                existingItem.quantity = (existingItem.quantity || 1) + 1;
-                                message = `Chúc mừng! Bạn đã nhận được [${droppedItem.rarity.toUpperCase()}] ${droppedItem.name}! (x${existingItem.quantity})`;
-                            } else {
-                                cultivation.inventory.push({
-                                    itemId: droppedItem.id,
-                                    name: droppedItem.name,
-                                    type: droppedItem.type,
-                                    quantity: 1,
-                                    equipped: false,
-                                    acquiredAt: new Date()
+                            // Weighted random
+                            const weights = { rare: 60, epic: 30, legendary: 10 };
+                            const weightedItems = [];
+                            eligibleItems.forEach(ei => {
+                                const weight = weights[ei.rarity] || 30;
+                                for (let w = 0; w < weight; w++) weightedItems.push(ei);
+                            });
+
+                            const droppedItem = weightedItems[Math.floor(Math.random() * weightedItems.length)];
+                            allDrops.push(droppedItem);
+
+                            // Add to inventory/techniques immediately so next iteration sees it
+                            if (droppedItem.type === 'technique') {
+                                cultivation.learnedTechniques.push({
+                                    techniqueId: droppedItem.id,
+                                    level: 1,
+                                    learnedAt: new Date()
                                 });
-                                message = `Chúc mừng! Bạn đã nhận được [${droppedItem.rarity.toUpperCase()}] ${droppedItem.name}!`;
+                            } else {
+                                const existingItem = cultivation.inventory.find(i => i.itemId === droppedItem.id);
+                                if (existingItem) {
+                                    existingItem.quantity = (existingItem.quantity || 1) + 1;
+                                } else {
+                                    cultivation.inventory.push({
+                                        itemId: droppedItem.id,
+                                        name: droppedItem.name,
+                                        type: droppedItem.type,
+                                        quantity: 1,
+                                        equipped: false,
+                                        acquiredAt: new Date()
+                                    });
+                                }
                             }
                         }
+                    }
 
-                        reward = { type: 'lootbox', droppedItem: droppedItem };
+                    // Add fallback spirit stones
+                    if (totalSpiritStonesFallback > 0) {
+                        cultivation.spiritStones += totalSpiritStonesFallback;
+                        cultivation.totalSpiritStonesEarned += totalSpiritStonesFallback;
+                    }
+
+                    // Build summary message
+                    if (allDrops.length === 0 && totalSpiritStonesFallback > 0) {
+                        message = `Bạn đã sở hữu tất cả vật phẩm! Nhận được ${totalSpiritStonesFallback.toLocaleString()} linh thạch`;
+                        reward = { type: 'spiritStones', amount: totalSpiritStonesFallback };
+                    } else {
+                        // Group drops by rarity for summary
+                        const dropsByRarity = {};
+                        allDrops.forEach(d => {
+                            const key = d.rarity || 'common';
+                            dropsByRarity[key] = (dropsByRarity[key] || 0) + 1;
+                        });
+                        const summaryParts = [];
+                        ['legendary', 'epic', 'rare', 'uncommon', 'common'].forEach(r => {
+                            if (dropsByRarity[r]) summaryParts.push(`${dropsByRarity[r]} ${r.toUpperCase()}`);
+                        });
+                        const summaryStr = summaryParts.join(', ');
+                        const stoneStr = totalSpiritStonesFallback > 0 ? ` + ${totalSpiritStonesFallback.toLocaleString()} linh thạch` : '';
+
+                        message = qty > 1
+                            ? `Mở ${qty} rương! Nhận: ${summaryStr}${stoneStr}`
+                            : `Chúc mừng! Bạn đã nhận được [${allDrops[0]?.rarity?.toUpperCase()}] ${allDrops[0]?.name}!`;
+
+                        reward = {
+                            type: 'lootbox_bulk',
+                            quantity: qty,
+                            drops: allDrops,
+                            spiritStones: totalSpiritStonesFallback,
+                            droppedItem: allDrops[0] // For single box animation
+                        };
                     }
                 } else if (itemData.expReward) {
                     const totalExp = itemData.expReward * qty;
