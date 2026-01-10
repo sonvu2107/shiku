@@ -361,6 +361,17 @@ export const getShop = async (req, res, next) => {
                 lootboxOnly: true // Flag để UI biết đây là item từ rương
             }));
 
+        const dungeonDropTechniques = SHOP_ITEMS
+            .filter(item => item.type === 'technique' && item.dungeonDrop === true)
+            .map(item => ({
+                ...item,
+                price: 0,
+                originalPrice: 0,
+                owned: cultivation.learnedTechniques?.some(t => t.techniqueId === item.id),
+                canAfford: false,
+                dungeonOnly: true
+            }));
+
         // Process equipment ownership
         const enrichedEquipment = equipmentItems.map(eq => ({
             ...eq,
@@ -371,7 +382,7 @@ export const getShop = async (req, res, next) => {
 
         res.json({
             success: true,
-            data: { items: [...shopItems, ...lootboxTechniques, ...enrichedEquipment], spiritStones: cultivation.spiritStones }
+            data: { items: [...shopItems, ...lootboxTechniques, ...dungeonDropTechniques, ...enrichedEquipment], spiritStones: cultivation.spiritStones }
         });
 
     } catch (error) {
