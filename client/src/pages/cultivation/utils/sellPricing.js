@@ -1,10 +1,10 @@
 import { SHOP_ITEM_DATA } from './constants.js';
 
-const EQUIPMENT_SELL_MIN = 0.5;
-const EQUIPMENT_SELL_MAX = 0.7;
+const EQUIPMENT_SELL_MIN = 0.25;
+const EQUIPMENT_SELL_MAX = 0.4;
 const NON_EQUIPMENT_SELL_RATE = 0.5;
 const FALLBACK_STACKABLE_PRICE = 10;
-const PRICE_MULTIPLIER = 5;
+const PRICE_MULTIPLIER = 1.5;
 const PERCENT_WEIGHT = 300;
 const HP_DIVISOR = 5;
 const SPEED_WEIGHT = 2;
