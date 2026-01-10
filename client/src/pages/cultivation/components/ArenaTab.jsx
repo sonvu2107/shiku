@@ -13,7 +13,8 @@ import { useState, useEffect, useCallback, memo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { api } from '../../../api';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
-import FlyingReward from './FlyingReward.jsx';
+
+import BattleScene from './BattleScene.jsx';
 
 // ==================== CONSTANTS ====================
 
@@ -503,148 +504,7 @@ const BotOfferModal = memo(function BotOfferModal({ bot, onAccept, onDecline }) 
 /**
  * Battle Result Modal - Shows after battle with animation
  */
-const BattleResultModal = memo(function BattleResultModal({ result, onClose }) {
-    if (!result) return null;
 
-    const isWin = result.result === 'win';
-    const isDraw = result.result === 'draw';
-    const mmrChange = result.mmrChange || 0;
-
-    return (
-        <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/90 flex items-center justify-center z-[100] p-4"
-            onClick={onClose}
-        >
-            {/* Screen Flash */}
-            <motion.div
-                className={`absolute inset-0 pointer-events-none ${isWin ? 'bg-amber-500/30' : isDraw ? 'bg-slate-500/20' : 'bg-red-500/30'}`}
-                initial={{ opacity: 0 }}
-                animate={{ opacity: [0, 1, 0] }}
-                transition={{ duration: 0.5 }}
-            />
-
-            {/* Victory/Defeat Particles */}
-            <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                {Array.from({ length: 20 }).map((_, i) => (
-                    <motion.div
-                        key={i}
-                        className={`absolute w-2 h-2 rounded-full ${isWin ? 'bg-amber-400' : isDraw ? 'bg-slate-400' : 'bg-red-400'}`}
-                        style={{
-                            left: `${50 + (Math.random() - 0.5) * 60}%`,
-                            top: '50%'
-                        }}
-                        initial={{ opacity: 0, y: 0, scale: 0 }}
-                        animate={{
-                            opacity: [0, 1, 0],
-                            y: [0, -200 - Math.random() * 100],
-                            x: [(Math.random() - 0.5) * 200],
-                            scale: [0, 1 + Math.random(), 0]
-                        }}
-                        transition={{
-                            duration: 1.5,
-                            delay: i * 0.05,
-                            ease: "easeOut"
-                        }}
-                    />
-                ))}
-            </div>
-
-            <motion.div
-                initial={{ scale: 0.5, opacity: 0, y: 50 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.5, opacity: 0 }}
-                transition={{ type: "spring", bounce: 0.4 }}
-                className="relative bg-gradient-to-b from-slate-900 to-slate-800 border-2 rounded-xl p-8 max-w-md w-full text-center shadow-2xl"
-                style={{
-                    borderColor: isWin ? '#F59E0B' : isDraw ? '#64748B' : '#EF4444',
-                    boxShadow: `0 0 60px ${isWin ? 'rgba(245,158,11,0.4)' : isDraw ? 'rgba(100,116,139,0.3)' : 'rgba(239,68,68,0.4)'}`
-                }}
-                onClick={e => e.stopPropagation()}
-            >
-                {/* Result Title */}
-                <motion.h2
-                    className={`text-4xl lg:text-5xl font-bold font-title mb-4 ${isWin ? 'text-amber-400' : isDraw ? 'text-slate-400' : 'text-red-400'}`}
-                    initial={{ scale: 0 }}
-                    animate={{ scale: [0, 1.2, 1] }}
-                    transition={{ delay: 0.2, duration: 0.5 }}
-                    style={{
-                        textShadow: isWin
-                            ? '0 0 30px rgba(245,158,11,0.8)'
-                            : isDraw
-                                ? '0 0 20px rgba(100,116,139,0.6)'
-                                : '0 0 30px rgba(239,68,68,0.8)'
-                    }}
-                >
-                    {isWin ? 'CHIẾN THẮNG!' : isDraw ? 'HÒA!' : 'THẤT BẠI!'}
-                </motion.h2>
-
-                {/* Opponent Info */}
-                {result.opponent && (
-                    <motion.div
-                        className="mb-4"
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ delay: 0.4 }}
-                    >
-                        <p className="text-slate-400 text-sm">Đối thủ</p>
-                        <p className="text-lg text-slate-200 font-semibold">
-                            {result.opponent.username}
-                            {result.isBot && <span className="ml-2 text-xs text-purple-400">(Tiên Ma)</span>}
-                        </p>
-                    </motion.div>
-                )}
-
-                {/* MMR Change */}
-                <motion.div
-                    className={`text-3xl lg:text-4xl font-bold font-mono mb-6 ${mmrChange >= 0 ? 'text-green-400' : 'text-red-400'}`}
-                    initial={{ opacity: 0, scale: 0.5 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ delay: 0.6, type: "spring" }}
-                >
-                    {mmrChange >= 0 ? '+' : ''}{mmrChange} MMR
-                </motion.div>
-
-                {/* Battle Stats */}
-                {result.battleStats && (
-                    <motion.div
-                        className="grid grid-cols-2 gap-3 mb-6 text-sm"
-                        initial={{ opacity: 0 }}
-                        animate={{ opacity: 1 }}
-                        transition={{ delay: 0.8 }}
-                    >
-                        <div className="bg-slate-800/50 rounded-lg p-2">
-                            <p className="text-slate-400">Sát thương gây ra</p>
-                            <p className="text-amber-300 font-bold">{result.battleStats.damageDealt?.toLocaleString() || 0}</p>
-                        </div>
-                        <div className="bg-slate-800/50 rounded-lg p-2">
-                            <p className="text-slate-400">Sát thương nhận</p>
-                            <p className="text-red-300 font-bold">{result.battleStats.damageTaken?.toLocaleString() || 0}</p>
-                        </div>
-                    </motion.div>
-                )}
-
-                {/* Close Button */}
-                <motion.button
-                    onClick={onClose}
-                    className={`px-8 py-3 rounded-xl font-bold text-lg transition-all ${isWin
-                        ? 'bg-gradient-to-r from-amber-600 to-amber-800 text-amber-100 hover:from-amber-500 hover:to-amber-700'
-                        : 'bg-gradient-to-r from-slate-600 to-slate-800 text-slate-100 hover:from-slate-500 hover:to-slate-700'
-                        }`}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 1 }}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                >
-                    Tiếp Tục
-                </motion.button>
-            </motion.div>
-        </motion.div>
-    );
-});
 
 // ==================== MAIN COMPONENT ====================
 
@@ -663,7 +523,7 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
     const [searchTimer, setSearchTimer] = useState(0);
     const [botOffer, setBotOffer] = useState(null);
     const [battleResult, setBattleResult] = useState(null);
-    const [rewardsAnimation, setRewardsAnimation] = useState([]); // Animation state
+
 
     // ==================== API CALLS ====================
 
@@ -755,20 +615,16 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                     });
 
                     if (challengeResponse?.success) {
-                        // Switch to PK tab to show battle animation
-                        if (onSwitchTab) {
-                            // Store battle data for PKTab to pick up
-                            sessionStorage.setItem('rankedBattle', JSON.stringify({
-                                battleData: challengeResponse.data,
-                                isRanked: true,
-                                opponentId: opponent.opponentId
-                            }));
-                            onSwitchTab('pk');
+                        const battleData = challengeResponse.data;
+                        // Inject MMR change for BattleScene
+                        if (battleData.mmrChange !== undefined && battleData.challenger) {
+                            battleData.challenger.mmrChange = battleData.mmrChange;
                         }
-                        // Refresh data after match
-                        await fetchRankData();
-                        await fetchMatchHistory();
-                        // Do NOT call refresh() here - it causes full page reload
+                        setBattleResult(battleData);
+
+                        // Background refresh
+                        fetchRankData();
+                        fetchMatchHistory();
                     }
                 } else if (response.suggestBot) {
                     // No opponent found - offer bot
@@ -796,19 +652,15 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
             });
 
             if (response?.success) {
-                // Switch to PK tab to show battle animation
-                if (onSwitchTab) {
-                    sessionStorage.setItem('rankedBattle', JSON.stringify({
-                        battleData: response.data,
-                        isRanked: true,
-                        isBot: true,
-                        botName: botOffer.name
-                    }));
-                    onSwitchTab('pk');
+                const battleData = response.data;
+                // Inject MMR change for BattleScene
+                if (battleData.mmrChange !== undefined && battleData.challenger) {
+                    battleData.challenger.mmrChange = battleData.mmrChange;
                 }
-                await fetchRankData();
-                await fetchMatchHistory();
-                // Do NOT call refresh() here - it causes full page reload
+                setBattleResult(battleData);
+
+                fetchRankData();
+                fetchMatchHistory();
             }
         } catch (error) {
             // Silent error handling
@@ -955,25 +807,20 @@ const ArenaTab = memo(function ArenaTab({ onSwitchTab }) {
                 )}
             </AnimatePresence>
 
-            {/* Battle Result Modal */}
-            <AnimatePresence>
-                {battleResult && (
-                    <BattleResultModal
-                        result={battleResult}
-                        onClose={() => setBattleResult(null)}
-                    />
-                )}
-            </AnimatePresence>
-
-            {/* Rewards Animation */}
-            {rewardsAnimation.map(anim => (
-                <FlyingReward
-                    key={anim.id}
-                    startPos={anim.startPos}
-                    rewards={anim.rewards}
-                    onComplete={() => setRewardsAnimation(prev => prev.filter(p => p.id !== anim.id))}
+            {/* Battle Scene */}
+            {battleResult && (
+                <BattleScene
+                    battleResult={battleResult}
+                    backgroundImage="vodai"
+                    onComplete={() => {
+                        setBattleResult(null);
+                        fetchRankData();
+                        fetchMatchHistory();
+                    }}
                 />
-            ))}
+            )}
+
+
         </div>
     );
 });

@@ -11,12 +11,11 @@ import { executeSkill, applyStatusEffects } from './combatSkillService.js';
  * Calculate hit chance based on accuracy and dodge
  */
 export function calculateHitChance(accuracy, dodge) {
-    // Improved formula: accuracy reduces dodge effectiveness multiplicative
-    const accuracyFactor = Math.min(accuracy / 100, 1.5);
-    const dodgeReduction = dodge / (dodge + accuracy);
-    const hitChance = accuracyFactor * (1 - dodgeReduction);
+    const acc = Math.max(0, accuracy || 0);
+    const dod = Math.max(0, dodge || 0);
+    const hit = acc / (acc + dod + 1e-9); // 1e-9 prevents division by zero
     // Clamp between 5% and 95%
-    return Math.max(0.05, Math.min(hitChance, 0.95));
+    return Math.max(0.05, Math.min(hit, 0.95));
 }
 
 /**
@@ -28,6 +27,23 @@ export function calculateHitChance(accuracy, dodge) {
  * @param {Object|null} options - Additional options (e.g., nghichThienMeta for PK damage reduction)
  * @returns {Object} Battle result with logs, winner, etc.
  */
+// Helper to normalize percentage inputs (handles both 128 and 1.28)
+// If x > 1, treat as integer percentage (128 -> 128%). If <= 1, treat as fraction (0.5 -> 50%).
+// Helper to normalize percentage inputs
+// Examples: 128 -> 128, 1.28 -> 128, 0.5 -> 50
+// Helper to normalize percentage inputs
+// Accepts two formats only:
+// - fraction: 0..1   (0.25 => 25%)
+// - percent:  >1     (25 => 25%, 1.28 => 1.28%)
+// NOTE: 128 means 128% (1.28 fraction). Use only where allowed (e.g. critDamage), not for caps like DR/regen.
+const toFrac = (x) => {
+    const v = Number(x);
+    if (!Number.isFinite(v) || v <= 0) return 0;
+    if (v <= 1) return v;
+    return v / 100;
+};
+const toPct = (x) => toFrac(x) * 100;
+
 export const simulateBattle = (challengerStats, opponentStats, challengerSkills = [], opponentSkills = [], options = {}) => {
     const {
         nghichThienMeta = null, // PK specific damage reduction
@@ -36,6 +52,7 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         debug = false
     } = options;
 
+    const DOT_CAP_FRAC = 0.15; // Cap DOT at 15% MaxHP/turn
     const logs = [];
     const isDebug = debug || process.env.BATTLE_DEBUG;
     if (isDebug) {
@@ -94,7 +111,12 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
     let challengerBuffs = [];
     let challengerDebuffs = [];
     let opponentBuffs = [];
+
     let opponentDebuffs = [];
+
+    // Fatal protection usage tracking (one trigger per turn max)
+    let challengerFatalUsedThisTurn = false;
+    let opponentFatalUsedThisTurn = false;
 
     // Shield state tracking (shields deplete as they absorb damage)
     // Pool starts with base shield, gains come from skills/buffs (event-based, not delta-based)
@@ -106,7 +128,11 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
 
     while (challengerHp > 0 && opponentHp > 0 && turn < maxTurns) {
         turn++;
+
+        challengerFatalUsedThisTurn = false;
+        opponentFatalUsedThisTurn = false;
         let description = '';
+        let skillHealed = 0;
 
         const attacker = currentAttacker === 'challenger' ? challengerStats : opponentStats;
         const defender = currentAttacker === 'challenger' ? opponentStats : challengerStats;
@@ -153,8 +179,8 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         let skillResult = null;
         let manaConsumed = 0;
 
-        // Check Silence
-        if (!effectiveAttacker.silenced) {
+        // Check Silence and Stun (Stun prevents Casting too)
+        if (!effectiveAttacker.silenced && !effectiveAttacker.stunned) {
             for (const skill of attackerSkills) {
                 const skillId = skill.techniqueId || skill.name;
                 const cost = skill.manaCost !== undefined ? skill.manaCost : 0; // Default 0 for tower mobs
@@ -191,7 +217,7 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                     };
 
                     // Execute skill
-                    skillResult = executeSkill(skill, attackerContext, defenderContext);
+                    skillResult = executeSkill(skill, attackerContext, defenderContext) || {};
 
                     // Process immediate skill results
                     skillDamageBonus = skillResult.damage || 0;
@@ -204,11 +230,9 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
 
                     // Update Attacker HP (Heal)
                     if (skillResult.healing > 0) {
-                        if (currentAttacker === 'challenger') {
-                            challengerHp = Math.min(challengerMaxHp, challengerHp + skillResult.healing);
-                        } else {
-                            opponentHp = Math.min(opponentMaxHp, opponentHp + skillResult.healing);
-                        }
+                        skillHealed = skillResult.healing;
+                        // FIX: Do NOT apply heal here to avoid double-healing.
+                        // Heal is applied in ACTION/RESULT phase after sustainMultiplier.
                     }
 
                     // Handle HP Cost (Self Damage)
@@ -268,7 +292,7 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                     // Debug: Log skill usage
                     if (isDebug) {
                         console.log(`[SKILL] Turn ${turn} ${currentAttacker}: ${skill.name} | Mana: ${currentMana + manaConsumed} -> ${currentMana} | CD: ${skill.cooldown || 3}t`);
-                        if (skillResult.healing > 0) console.log(`  -> Heal: +${skillResult.healing}`);
+                        if (skillResult.healing > 0) console.log(`  -> Heal: +${skillResult.healing} (raw)`);
                         if (skillResult.damage > 0) console.log(`  -> Bonus Dmg: +${skillResult.damage}`);
                         if (skillResult.buffs?.length) console.log(`  -> Buffs: ${skillResult.buffs.map(b => b.type).join(', ')}`);
                         if (skillResult.debuffs?.length) console.log(`  -> Debuffs: ${skillResult.debuffs.map(d => d.type).join(', ')}`);
@@ -290,11 +314,25 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         const tryFatalProtection = (side, reason) => {
             if (side === 'challenger') {
                 if (challengerHp > 0) return false;
-                if ((effectiveChallenger.fatalProtection || 0) <= 0) return false;
+                if (challengerFatalUsedThisTurn) return false;
 
-                const reviveHp = Math.max(1, Math.floor(challengerMaxHp * effectiveChallenger.fatalProtection));
+                // 1) Determine Fatal Fraction (fp)
+                let fp = toFrac(effectiveChallenger.fatalProtection);
+
+                // 2) Fallback if stat is 0
+                if (fp <= 0) {
+                    const hasBuff = challengerBuffs.find(b => b.type === 'fatalProtection' && (b.value > 0 || b.pct > 0));
+                    if (hasBuff) fp = toFrac(hasBuff.value || hasBuff.pct || 0);
+                }
+
+                if (fp <= 0) return false;
+
+                // Sync effective stat for clarity (optional but good for consistency)
+                effectiveChallenger.fatalProtection = fp;
+
+                const reviveHp = Math.max(1, Math.floor(challengerMaxHp * fp));
                 challengerHp = reviveHp;
-                description += ` [Hộ mệnh kích hoạt${reason ? ` (${reason})` : ''}! Hồi ${Math.floor(effectiveChallenger.fatalProtection * 100)}% HP]`;
+                description += ` [Hộ mệnh kích hoạt${reason ? ` (${reason})` : ''}! Hồi ${Math.floor(fp * 100)}% HP]`;
 
                 // Consume oneTime fatalProtection
                 for (let i = challengerBuffs.length - 1; i >= 0; i--) {
@@ -305,14 +343,28 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                 }
                 // Clear the stat so it doesn't trigger again this turn
                 effectiveChallenger.fatalProtection = 0;
+                challengerFatalUsedThisTurn = true;
                 return true;
             } else {
                 if (opponentHp > 0) return false;
-                if ((effectiveOpponent.fatalProtection || 0) <= 0) return false;
+                if (opponentFatalUsedThisTurn) return false;
 
-                const reviveHp = Math.max(1, Math.floor(opponentMaxHp * effectiveOpponent.fatalProtection));
+                // 1) Determine Fatal Fraction (fp)
+                let fp = toFrac(effectiveOpponent.fatalProtection);
+
+                // 2) Fallback if stat is 0
+                if (fp <= 0) {
+                    const hasBuff = opponentBuffs.find(b => b.type === 'fatalProtection' && (b.value > 0 || b.pct > 0));
+                    if (hasBuff) fp = toFrac(hasBuff.value || hasBuff.pct || 0);
+                }
+
+                if (fp <= 0) return false;
+
+                effectiveOpponent.fatalProtection = fp;
+
+                const reviveHp = Math.max(1, Math.floor(opponentMaxHp * fp));
                 opponentHp = reviveHp;
-                description += ` [Hộ mệnh kích hoạt${reason ? ` (${reason})` : ''}! Hồi ${Math.floor(effectiveOpponent.fatalProtection * 100)}% HP]`;
+                description += ` [Hộ mệnh kích hoạt${reason ? ` (${reason})` : ''}! Hồi ${Math.floor(fp * 100)}% HP]`;
 
                 for (let i = opponentBuffs.length - 1; i >= 0; i--) {
                     if (opponentBuffs[i].type === 'fatalProtection' && opponentBuffs[i].oneTime) {
@@ -321,6 +373,7 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                     }
                 }
                 effectiveOpponent.fatalProtection = 0;
+                opponentFatalUsedThisTurn = true;
                 return true;
             }
         };
@@ -343,12 +396,57 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         let shouldCapDamage = true;
         let capPercentage = 0.18; // Default for PvP/Arena
 
+        // --- 0. CALCULATE SUSTAIN MULTIPLIER (Start of Turn) ---
+        // Fix Crash/Design: Calculate this independent of Stun/Dodge
+        let sustainMultiplier = 1.0;
+        if (!isDungeon && turn >= 20) {
+            // Decay 2% per turn after 20, max 60% reduction (multiplier 0.4)
+            const decayAmount = Math.min(0.6, (turn - 20) * 0.02);
+            sustainMultiplier = 1.0 - decayAmount;
+        }
+
+        // Apply Anti-Heal Debuff (Receiver-based: 'reduced_healing' on the one receiving HP)
+        // Since we are calculating self-sustain (Regen/Lifesteal/SkillSelfHeal), the receiver is the currentAttacker.
+        // Rename for clarity: healingReceiverDebuffs
+        const healingReceiverDebuffs = currentAttacker === 'challenger' ? challengerDebuffs : opponentDebuffs;
+        const antiHealDebuff = healingReceiverDebuffs.find(d => d.type === 'reduced_healing');
+        if (antiHealDebuff) {
+            const reduction = Math.min(toFrac(antiHealDebuff.value ?? antiHealDebuff.pct ?? 0.5), 0.95);
+            sustainMultiplier *= (1 - reduction);
+        }
+
+        if (turn >= 20 && !isDungeon && turn % 10 === 0 && isDebug) {
+            console.log(`[Turn ${turn}] Sustain Multiplier: ${(sustainMultiplier * 100).toFixed(0)}%`);
+        }
+
+        // Apply Sustain Multiplier to Skill Heal (if any)
+        if (skillHealed > 0) {
+            skillHealed = Math.floor(skillHealed * sustainMultiplier);
+        }
+
+        // Apply Sustain Multiplier to Regeneration (Passive)
+        // Fix Design: Regen applies even if Stunned/Dodged, but respects Anti-Heal/Decay
+        if ((effectiveAttacker.regeneration || 0) > 0) {
+            const maxHp = currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp;
+            const regenCap = isDungeon ? 5 : 3; // PvP: 3%, PvE: 5%
+            const effectiveRegen = Math.min(toPct(effectiveAttacker.regeneration), regenCap);
+
+            // Calculate Raw Regen
+            let rawRegen = Math.floor(maxHp * effectiveRegen / 100);
+
+            // Apply Multiplier
+            regenerationHealed = Math.floor(rawRegen * sustainMultiplier);
+        }
+
         // 1. Check Stun
         if (effectiveAttacker.stunned) {
             description = `Bị choáng! Không thể hành động!`;
         } else {
-            // 2. Check Hit/Dodge
-            const hitChance = calculateHitChance(effectiveAttacker.accuracy || 100, effectiveDefender.dodge || 0);
+            // 2. Check Hit/Dodge (Standardized)
+            const acc = effectiveAttacker.accuracy || 100;
+            const dod = effectiveDefender.dodge || 0;
+            const hitChance = calculateHitChance(acc, dod);
+
             isDodged = Math.random() > hitChance;
 
             if (isDodged) {
@@ -381,11 +479,8 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                 const resistance = effectiveDefender.resistance || 0;
                 damage = damage * (1 - Math.min(resistance, 50) / 100);
 
-                // SUDDEN DEATH (PvP only): Increase damage after turn 40 to prevent stalemates
-                if (!isDungeon && turn >= 40) {
-                    const frenzyMult = 1 + (turn - 40) * 0.1; // +10% per turn after turn 40
-                    damage = Math.floor(damage * frenzyMult);
-                }
+                // Fix Balance: Removed Frenzy Multiplier (double scaling issue)
+                // Scaling is now handled purely by Cap Release later
 
                 // 4. Handle Invulnerable
                 if (effectiveDefender.invulnerable) {
@@ -395,17 +490,52 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
 
                 // 5. Critical & Variance (only if damage > 0)
                 if (damage > 0) {
+                    // ===== Dungeon One-shot Policy (FINAL) =====
+                    // Disable cap ONLY if the player's expected NON-CRIT hit (pre-variance) after Shield + DR
+                    // would already one-shot the monster.
+                    // Threshold 1.12 ~= 1/0.9 to survive worst-case -10% variance and rounding.
+                    if (isDungeon && currentAttacker === 'challenger') {
+                        const monsterMaxHp = opponentMaxHp;
+
+                        // `damage` at this point already includes: def formula + skillDamageBonus + resistance,
+                        // but is pre-crit and pre-variance (exactly what we want).
+                        let expected = damage;
+
+                        // 1) Shield absorb first (matches RESULT PHASE ordering)
+                        const shield = opponentShield || 0;
+                        expected = Math.max(0, expected - shield);
+
+                        // 2) Defender damage reduction after shield (cap at 75%)
+                        const dr = Math.min(toFrac(effectiveDefender.damageReduction || 0), 0.75);
+                        expected = Math.floor(expected * (1 - dr));
+
+                        const powerGap = expected / Math.max(1, monsterMaxHp);
+
+                        if (powerGap >= 1.12) {
+                            shouldCapDamage = false;
+                        }
+                    }
                     // Clamp critRate/critDamage in PvP to prevent runaway scaling
                     let critRate = effectiveAttacker.criticalRate || 0;
-                    let critDamage = effectiveAttacker.criticalDamage || 150;
+
+                    // Normalize criticalDamage: Supports both 250 (%) and 2.5 (x)
+                    // Heuristic: <= 10 is multiplier, > 10 is percent
+                    const cd = (() => {
+                        const v = Number(effectiveAttacker.criticalDamage);
+                        if (!Number.isFinite(v) || v <= 0) return 1.5;   // default 150% => 1.5x
+                        if (v <= 10) return v;                           // treat 2.5 as 2.5x (fraction multiplier)
+                        return v / 100;                                  // treat 250 as 2.5x
+                    })();
+
+                    let finalCritMult = cd;
                     if (!isDungeon) {
-                        critRate = Math.min(critRate, 65);      // PvP cap 65%
-                        critDamage = Math.min(critDamage, 250); // PvP cap 250%
+                        critRate = Math.min(critRate, 65);       // PvP cap 65%
+                        finalCritMult = Math.min(cd, 2.5);       // PvP cap 250% (2.5x)
                     }
 
                     if (Math.random() * 100 < critRate) {
                         isCritical = true;
-                        damage = damage * (critDamage / 100);
+                        damage = damage * finalCritMult;
                     }
 
                     // Random variance +/- 10%
@@ -417,30 +547,14 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                     // - Normal mobs: NO CAP (fast clear)
                     // - Elite mobs: 35% cap (~3 turns)
                     // - Boss: 30% cap (~4-5 turns)
-                    // 
-                    // EXCEPTION: Disable cap if player >> monster (power gap >= 3x)
+                    //
+                    // EXCEPTION: Disable cap if expected non-crit damage (after shield+DR) can one-shot (>=112% HP)
                     const defenderMaxHp = currentAttacker === 'challenger' ? opponentMaxHp : challengerMaxHp;
-
-                    // Check power gap - disable cap if player is overpowered
-                    // shouldCapDamage already declared in outer scope
-                    if (isDungeon && currentAttacker === 'challenger') {
-                        // Compare player attack vs monster max HP
-                        const playerAttack = effectiveAttacker.attack || 0;
-                        const monsterMaxHp = defenderMaxHp;
-                        const powerGap = playerAttack / Math.max(1, monsterMaxHp);
-
-                        // If player attack >= 3x monster HP, disable cap (one-shot allowed)
-                        if (powerGap >= 3.0) {
-                            shouldCapDamage = false;
-                        }
-                    }
 
                     // NOTE: Damage cap is now applied AFTER DamageReduction in RESULT APPLICATION PHASE
                     // This ensures the cap limits actual damage dealt, not pre-reduction damage
 
-                    // Determine cap percentage for later use (assignment, not redeclaration)
-                    // capPercentage already declared in outer scope with default 0.18
-
+                    // Determine cap percentage for later use
                     if (isDungeon && currentAttacker === 'challenger') {
                         // Player attacking monster - adjust based on monster HP scaling
                         const avgHpForFloor = 5000;
@@ -453,6 +567,9 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                         } else {
                             capPercentage = 0.30; // Boss mob (30% cap)
                         }
+                    } else if (isDungeon && currentAttacker !== 'challenger') {
+                        // Monster attacking player
+                        capPercentage = 0.30; // Cap damage at 30% HP to prevent one-shots but allow pressure
                     }
 
                     // NOTE: Shield absorb moved to RESULT APPLICATION PHASE
@@ -462,21 +579,6 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                 // NOTE: Lifesteal moved to RESULT APPLICATION PHASE (after actualDamageDealt)
                 // This ensures lifesteal is based on actual damage dealt, not raw damage
             }
-        }
-
-        // Regeneration (Passive) - PvP cap reduced to prevent stalemates
-        if ((effectiveAttacker.regeneration || 0) > 0) {
-            const maxHp = currentAttacker === 'challenger' ? challengerMaxHp : opponentMaxHp;
-            const regenCap = isDungeon ? 5 : 3; // PvP: 3%, PvE: 5%
-
-            let effectiveRegen = effectiveAttacker.regeneration;
-            // Sustain Decay (PvP only): Reduce efficiency after turn 40
-            if (!isDungeon && turn >= 40) {
-                effectiveRegen *= Math.max(0.3, 1 - (turn - 40) * 0.07); // Decay by 7% per turn, min 30% efficiency (hits min ~Turn 50)
-            }
-
-            const regenRate = Math.min(effectiveRegen, regenCap);
-            regenerationHealed = Math.floor(maxHp * regenRate / 100);
         }
 
 
@@ -501,13 +603,14 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
 
             // Apply Defender's Damage Reduction Buff AFTER shield (Thiết Bốc, Đại Địa Hộ, etc.)
             if ((effectiveDefender.damageReduction || 0) > 0) {
-                const reduction = Math.min(effectiveDefender.damageReduction, 0.75); // Cap at 75%
+                const reduction = Math.min(toFrac(effectiveDefender.damageReduction), 0.75); // Cap at 75%
                 incomingDamage = Math.floor(incomingDamage * (1 - reduction));
             }
 
             // Special PK Damage Reduction (Nghich Thien)
-            if (currentAttacker !== 'challenger' && nghichThienMeta?.damageReduction > 0) {
-                incomingDamage = Math.floor(incomingDamage * (1 - nghichThienMeta.damageReduction));
+            const pkDR = toFrac(nghichThienMeta?.damageReduction);
+            if (currentAttacker !== 'challenger' && pkDR > 0) {
+                incomingDamage = Math.floor(incomingDamage * (1 - Math.min(pkDR, 0.75)));
             }
 
             // Anti-stalemate: gradually raise PvP cap after turn 12 (keeps anti one-shot early)
@@ -518,9 +621,9 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
 
                 if (turn >= 40) {
                     // Sudden Death Phase: Rapidly release cap
-                    // Start from 25% (max mid-game cap), add 4% per turn.
+                    // Start from 25% (max mid-game cap), add 3% per turn (gentler slope).
                     const startCap = 0.25;
-                    const suddenDeathExtra = Math.max(0, turn - 40) * 0.04;
+                    const suddenDeathExtra = Math.max(0, turn - 40) * 0.03;
                     const calculatedCap = startCap + suddenDeathExtra;
 
                     // Optimization: If cap >= 100%, disable it entirely
@@ -529,27 +632,14 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
                     } else {
                         capPercentage = calculatedCap;
                     }
+
+                    if (isDebug && turn >= 38 && (turn % 5 === 0 || turn === 40)) {
+                        console.log(`[SUDDEN-DEATH] Turn ${turn} | Cap Released To: ${capPercentage ? (capPercentage * 100).toFixed(0) + '%' : 'UNLEASHED'}`);
+                    }
                 } else {
-                    // Mid Game: Slow scaling to 25% (Fix: use baseCap + extra instead of cumulative addition)
+                    // Mid Game: Slow scaling to 25% (limit max mid-game cap)
                     const extra = Math.floor((turn - 12) / 2) * 0.01;
                     capPercentage = Math.min(baseCap + extra, 0.25);
-                }
-
-                if (isDebug && turn >= 38 && (turn % 5 === 0 || turn === 40 || turn >= 95)) {
-                    // Calculate implicit factors for logging
-                    // Regen factor (approximate recreation for display)
-                    let regenFactor = 1.0;
-                    if (turn >= 40) regenFactor = Math.max(0.3, 1 - (turn - 40) * 0.07);
-
-                    // Lifesteal factor (approximate)
-                    let lsFactor = 1.0;
-                    if (turn >= 40) lsFactor = Math.max(0.2, 1 - (turn - 40) * 0.1);
-
-                    // Frenzy Mult 
-                    let frenzyMult = (turn >= 40) ? (1 + (turn - 40) * 0.1) : 1.0;
-
-                    const capDisplay = capPercentage ? `${(capPercentage * 100).toFixed(0)}%` : 'No Cap';
-                    console.log(`[SUDDEN-DEATH] Turn ${turn} | Cap: ${capDisplay} | Frenzy: ${frenzyMult.toFixed(1)}x | Regen: ${regenFactor.toFixed(2)}x | Lifesteal: ${lsFactor.toFixed(2)}x`);
                 }
             }
 
@@ -583,11 +673,7 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
             }
 
             // Lifesteal - based on ACTUAL damage dealt (post-reduction/cap)
-            // Fix: normalize input values to fraction (0-1)
-            const toFrac = (x) => {
-                if (!x) return 0;
-                return x > 1 ? (x / 100) : x;
-            };
+
 
             const lsCapFrac = isDungeon ? 0.50 : 0.10; // 50% PvE, 10% PvP
 
@@ -599,29 +685,12 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
             // Total lifesteal fraction, capped
             let totalLsFrac = Math.min(baseLsFrac + skillLsFrac, lsCapFrac);
 
-            // Sustain Decay (PvP only): Reduce efficiency after turn 40
-            if (!isDungeon && turn >= 40) {
-                const originalFrac = totalLsFrac;
-                totalLsFrac *= Math.max(0.2, 1 - (turn - 40) * 0.1); // Decay by 10% per turn
-            }
-
             if (actualDamageDealt > 0 && totalLsFrac > 0) {
-                lifestealHealed = Math.floor(actualDamageDealt * totalLsFrac);
+                // Apply pre-calculated sustainMultiplier
+                lifestealHealed = Math.floor(actualDamageDealt * totalLsFrac * sustainMultiplier);
             }
         }
 
-        // Apply Healing (Lifesteal + Regen)
-        const totalHealing = lifestealHealed + regenerationHealed;
-        if (currentAttacker === 'challenger') {
-            challengerHp = Math.min(challengerMaxHp, challengerHp + totalHealing);
-        } else {
-            opponentHp = Math.min(opponentMaxHp, opponentHp + totalHealing);
-        }
-
-        // Debug: Log healing
-        if (isDebug && totalHealing > 0 && (turn <= 10 || turn % 10 === 0 || turn >= 40)) {
-            console.log(`  -> Heal: +${totalHealing.toLocaleString()} (LS: ${lifestealHealed}, Regen: ${regenerationHealed})`);
-        }
 
         // Check Fatal Protection after direct damage (both sides)
         tryFatalProtection('challenger', 'sát thương');
@@ -639,9 +708,10 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
             }
         }
 
-        // 8. Handle Reflect Damage
+        // 8. Handle Reflect Damage (Damage -> Reflect)
         if (actualDamageDealt > 0 && effectiveDefender.reflectDamage > 0) {
-            const reflected = Math.floor(actualDamageDealt * effectiveDefender.reflectDamage);
+            const reflectFrac = Math.min(toFrac(effectiveDefender.reflectDamage), 1.0); // Cap reflect at 100%
+            const reflected = Math.floor(actualDamageDealt * reflectFrac);
             if (currentAttacker === 'challenger') {
                 challengerHp = Math.max(0, challengerHp - reflected);
                 description += ` [Bị phản ${reflected} sát thương]`;
@@ -654,15 +724,19 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
             }
         }
 
-        // 9. Handle Poison DOT - ticks on the ACTIVE UNIT only (their turn end)
-        // This ensures DOT doesn't tick x2 per full round
+        // 9. Handle Poison DOT (Reflect -> DOT)
+        // ticks on the ACTIVE UNIT only (their turn end)
         let poisonDamage = 0;
         if (currentAttacker === 'challenger') {
             challengerDebuffs.forEach(d => {
                 if (d.type === 'poison') {
-                    poisonDamage += Math.floor(challengerMaxHp * (d.damagePerTick || 0.01));
+                    const tick = toFrac(d.damagePerTick ?? d.pct ?? 0.01);
+                    poisonDamage += Math.floor(challengerMaxHp * tick);
                 }
             });
+            // Cap Poison Damage (Max 15% HP per turn to prevent infinite stack exploit)
+            poisonDamage = Math.min(poisonDamage, Math.floor(challengerMaxHp * DOT_CAP_FRAC));
+
             if (poisonDamage > 0) {
                 challengerHp = Math.max(0, challengerHp - poisonDamage);
                 // Check Fatal Protection after poison
@@ -671,13 +745,37 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
         } else {
             opponentDebuffs.forEach(d => {
                 if (d.type === 'poison') {
-                    poisonDamage += Math.floor(opponentMaxHp * (d.damagePerTick || 0.01));
-                }
+                    const tick = toFrac(d.damagePerTick ?? d.pct ?? 0.01);
+                    poisonDamage += Math.floor(opponentMaxHp * tick);
+                } else if (d.type === 'burn') { /* burn damage logic here */ }
             });
+
+            // Cap Poison Damage (Max 15% HP per turn)
+            poisonDamage = Math.min(poisonDamage, Math.floor(opponentMaxHp * DOT_CAP_FRAC));
+
             if (poisonDamage > 0) {
                 opponentHp = Math.max(0, opponentHp - poisonDamage);
                 tryFatalProtection('opponent', 'độc');
             }
+        }
+
+        // 10. Apply Healing (Heal LAST: Damage -> Reflect -> DOT -> Heal -> Cleanup)
+        // Consolidating all healing application here
+        const totalHealing = skillHealed + lifestealHealed + regenerationHealed;
+        if (currentAttacker === 'challenger') {
+            // Apply to CURRENT HP (which might have been reduced by reflect/dot)
+            if (challengerHp > 0) { // Only heal if alive? Usually yes, unless fatal protection triggered
+                challengerHp = Math.min(challengerMaxHp, challengerHp + totalHealing);
+            }
+        } else {
+            if (opponentHp > 0) {
+                opponentHp = Math.min(opponentMaxHp, opponentHp + totalHealing);
+            }
+        }
+
+        // Debug: Log healing
+        if (isDebug && totalHealing > 0 && (turn <= 10 || turn % 10 === 0 || turn >= 20)) {
+            console.log(`  -> Heal: +${totalHealing.toLocaleString()} (Skill: ${skillHealed}, LS: ${lifestealHealed}, Regen: ${regenerationHealed}) [Mult: ${sustainMultiplier.toFixed(2)}]`);
         }
 
 
@@ -705,6 +803,7 @@ export const simulateBattle = (challengerStats, opponentStats, challengerSkills 
             turn,
             attacker: currentAttacker,
             damage: actualDamageDealt,
+            heal: skillHealed + lifestealHealed + regenerationHealed,
             isCritical,
             isDodged,
             lifestealHealed,

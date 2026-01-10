@@ -4,6 +4,7 @@
  */
 
 import Rank, { RANK_TIERS, RANKED_BOTS } from '../models/Rank.js';
+import { REALM_BASE_STATS } from '../data/pkBots.js';
 import RankedMatch from '../models/RankedMatch.js';
 import Season, { SEASON_REWARDS } from '../models/Season.js';
 import Cultivation from '../models/Cultivation.js';
@@ -104,31 +105,41 @@ export function getRankedBot(tier, faction = 'none') {
  * Generate bot stats based on tier
  */
 export function generateBotStats(tier, statMultiplier) {
-    // Base stats by tier - tăng mạnh cho tier cao
-    const baseStatsByTier = {
-        1: { attack: 15, defense: 8, qiBlood: 150, zhenYuan: 80, speed: 12, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 0.5, luck: 5 },
-        2: { attack: 40, defense: 20, qiBlood: 400, zhenYuan: 200, speed: 18, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 1, luck: 8 },
-        3: { attack: 80, defense: 40, qiBlood: 800, zhenYuan: 400, speed: 25, criticalRate: 10, criticalDamage: 170, accuracy: 88, dodge: 10, penetration: 5, resistance: 5, lifesteal: 2, regeneration: 1.5, luck: 10 },
-        4: { attack: 180, defense: 90, qiBlood: 1800, zhenYuan: 900, speed: 32, criticalRate: 12, criticalDamage: 180, accuracy: 90, dodge: 12, penetration: 8, resistance: 8, lifesteal: 3, regeneration: 2, luck: 12 },
-        5: { attack: 400, defense: 200, qiBlood: 4000, zhenYuan: 2000, speed: 40, criticalRate: 15, criticalDamage: 190, accuracy: 92, dodge: 15, penetration: 12, resistance: 12, lifesteal: 5, regeneration: 3, luck: 15 },
-        6: { attack: 900, defense: 450, qiBlood: 9000, zhenYuan: 4500, speed: 50, criticalRate: 18, criticalDamage: 200, accuracy: 94, dodge: 18, penetration: 15, resistance: 15, lifesteal: 7, regeneration: 4, luck: 18 },
-        7: { attack: 2000, defense: 1000, qiBlood: 20000, zhenYuan: 10000, speed: 60, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
-        8: { attack: 5000, defense: 2500, qiBlood: 50000, zhenYuan: 25000, speed: 75, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
-        9: { attack: 12000, defense: 6000, qiBlood: 120000, zhenYuan: 60000, speed: 90, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 }
+    // Base stats by tier (Secondary stats only - Primary stats come from REALM_BASE_STATS)
+    const secondaryStatsByTier = {
+        1: { speed: 12, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 0.5, luck: 5 },
+        2: { speed: 18, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 1, luck: 8 },
+        3: { speed: 25, criticalRate: 10, criticalDamage: 170, accuracy: 88, dodge: 10, penetration: 5, resistance: 5, lifesteal: 2, regeneration: 1.5, luck: 10 },
+        4: { speed: 32, criticalRate: 12, criticalDamage: 180, accuracy: 90, dodge: 12, penetration: 8, resistance: 8, lifesteal: 3, regeneration: 2, luck: 12 },
+        5: { speed: 40, criticalRate: 15, criticalDamage: 190, accuracy: 92, dodge: 15, penetration: 12, resistance: 12, lifesteal: 5, regeneration: 3, luck: 15 },
+        6: { speed: 50, criticalRate: 18, criticalDamage: 200, accuracy: 94, dodge: 18, penetration: 15, resistance: 15, lifesteal: 7, regeneration: 4, luck: 18 },
+        7: { speed: 60, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
+        8: { speed: 75, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
+        9: { speed: 90, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 }
     };
 
     // Stats that should NOT be scaled (percentage-based)
     const noScaleStats = ['criticalRate', 'criticalDamage', 'accuracy', 'dodge', 'resistance', 'lifesteal', 'regeneration', 'luck'];
 
-    const baseStats = baseStatsByTier[tier] || baseStatsByTier[1];
+    // 1. Get Primary Stats from REALM_BASE_STATS (Unified with PK Bots)
+    const primaryBase = REALM_BASE_STATS[tier] || REALM_BASE_STATS[1];
+
+    // 2. Get Secondary Stats
+    const secondaryBase = secondaryStatsByTier[tier] || secondaryStatsByTier[1];
+
     const stats = {};
 
-    for (const [key, value] of Object.entries(baseStats)) {
+    // 3. Apply Primary Stats (Scaled)
+    stats.attack = Math.floor(primaryBase.attack * statMultiplier);
+    stats.defense = Math.floor(primaryBase.defense * statMultiplier);
+    stats.qiBlood = Math.floor(primaryBase.qiBlood * statMultiplier);
+    stats.zhenYuan = Math.floor(stats.qiBlood * 0.5); // Derived from HP
+
+    // 4. Apply Secondary Stats
+    for (const [key, value] of Object.entries(secondaryBase)) {
         if (noScaleStats.includes(key)) {
-            // Percentage stats: keep as-is (no scaling)
             stats[key] = value;
         } else {
-            // Combat stats: scale with multiplier
             stats[key] = Math.floor(value * statMultiplier);
         }
     }

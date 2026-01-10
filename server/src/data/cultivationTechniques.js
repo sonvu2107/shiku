@@ -124,7 +124,35 @@ export const CULTIVATION_TECHNIQUES = {
         type: 'combat',
         tier: 10,
         unlockCondition: { type: UNLOCK_TYPES.REALM, minLevel: 9 },
-        lore: 'Độc công thiên hạ vô song. Một khi trúng độc, dù là Kim Cang bất hoại cũng sẽ từ từ rã rời theo thời gian.'
+        lore: 'Độc công thiên hạ vô song. Một khi trúng độc, dù là Kim Cang bất hoại cũng sẽ từ từ rã rời theo thời gian.',
+        skill: {
+            name: 'Thiên Địch Độc Tôn',
+            description: 'Gây 150% sát thương, gây sát thương độc 10% mỗi lượt',
+            damageMultiplier: 1.5,
+            cooldown: 8,
+            effects: ['poison']
+        }
+    },
+
+    // NEW ANTI-HEAL TECHNIQUE FOR BOTS
+    technique_cursed_seal: {
+        id: 'technique_cursed_seal',
+        name: 'Nguyền Rủa Ấn',
+        description: 'Tạo nguyền ấn lên kẻ địch, giảm 50% khả năng hồi phục trong 3 lượt',
+        shortDesc: 'Cấm liệu - Giảm hồi máu',
+        type: 'combat',
+        tier: 9,
+        unlockCondition: { type: UNLOCK_TYPES.REALM, minLevel: 9 }, // Soft lock
+        lore: 'Một loại cấm thuật thất truyền, phong ấn sinh cơ của kẻ địch.',
+        skill: {
+            name: 'Nguyền Rủa Ấn',
+            description: 'Gây 120% sát thương chuẩn, giảm 50% hồi máu trong 3 lượt',
+            damageMultiplier: 1.2,
+            cooldown: 6,
+            effects: ['reduced_healing'],
+            effectValue: 0.5, // 50% reduction
+            effectDuration: 3
+        }
     },
 
     // ==================== LEGENDARY COMBAT TECHNIQUES ====================

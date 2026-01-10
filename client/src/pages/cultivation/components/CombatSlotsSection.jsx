@@ -127,6 +127,24 @@ const CombatSlotsSection = ({ cultivationTechniques = [] }) => {
                                 <span className="text-xs text-slate-500 font-bold">Vị trí {slotIndex + 1}</span>
                             </div>
 
+                            {/* Error State: Equipped but missing info */}
+                            {isUnlocked && equippedTechnique && !techniqueInfo && (
+                                <div className="flex-1 flex flex-col items-center justify-center text-center">
+                                    <p className="text-xs text-red-400 font-bold mb-1">
+                                        Lỗi dữ liệu
+                                    </p>
+                                    <p className="text-[10px] text-slate-500 mb-2">
+                                        ID: {equippedTechnique.techniqueId}
+                                    </p>
+                                    <button
+                                        onClick={() => handleUnequipFromSlot(slotIndex)}
+                                        className="w-full py-1.5 rounded text-[10px] font-bold uppercase bg-slate-700 text-slate-400 border border-slate-600 hover:bg-slate-600 transition-all"
+                                    >
+                                        Tháo bỏ
+                                    </button>
+                                </div>
+                            )}
+
                             {!isUnlocked && (
                                 <div className="flex-1 flex flex-col items-center justify-center text-center">
                                     <p className="text-xs text-slate-500 mb-1">
@@ -208,18 +226,18 @@ const CombatSlotsSection = ({ cultivationTechniques = [] }) => {
                                             const rarityOrder = { legendary: 5, epic: 4, rare: 3, uncommon: 2, common: 1 };
                                             const aRarityVal = rarityOrder[a.rarity] || 0;
                                             const bRarityVal = rarityOrder[b.rarity] || 0;
-                                            
+
                                             if (aRarityVal !== bRarityVal) {
                                                 return bRarityVal - aRarityVal;
                                             }
-                                            
+
                                             // Then sort by tier (combat techniques)
                                             const aTier = a.level || 0;
                                             const bTier = b.level || 0;
                                             if (aTier !== bTier) {
                                                 return bTier - aTier;
                                             }
-                                            
+
                                             // Finally by name
                                             return a.name.localeCompare(b.name, 'vi');
                                         })

@@ -2,13 +2,14 @@ import { useState, useMemo, memo } from 'react';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { getItemIcon, IMAGE_COMPONENTS } from '../utils/iconHelpers.js';
 import { RARITY_COLORS } from '../utils/constants.js';
+import { getSellPrice } from '../utils/sellPricing.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import ItemTooltip from './ItemTooltip.jsx';
 import Pagination from './Pagination.jsx';
 
 const MerchantTab = memo(function MerchantTab() {
   const { cultivation, sellItems, loading } = useCultivation();
-  const [selectedItems, setSelectedItems] = useState(new Set());
+  const [selectedItems, setSelectedItems] = useState({});
   const [selling, setSelling] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [hoveredItem, setHoveredItem] = useState(null);
@@ -31,59 +32,80 @@ const MerchantTab = memo(function MerchantTab() {
     return ids;
   }, [equipped]);
 
-  // Filter: Unequipped Equipment ONLY
+  const getItemKey = (item) => (item?.itemId ? String(item.itemId) : '');
+  const getMaxSellQuantity = (item) => (item?.type?.startsWith('equipment_')
+    ? 1
+    : Math.max(1, Math.floor(Number(item?.quantity)) || 1));
+
   const filteredItems = useMemo(() => {
     return inventory.filter(item => {
-      // Must be equipment
-      if (!item.type || !item.type.startsWith('equipment_')) return false;
-
-      // Must NOT be equipped (check flag AND check equipped slots)
+      const itemId = getItemKey(item);
+      if (!itemId) return false;
       if (item.equipped) return false;
-      if (equippedItemIds.has(item.itemId)) return false;
-
-      return true;
+      if (equippedItemIds.has(itemId)) return false;
+      if (getMaxSellQuantity(item) <= 0) return false;
+      return getSellPrice(item) > 0;
     });
   }, [inventory, equippedItemIds]);
 
-  // Sell Price Calculation
-  const getSellPrice = (item) => {
-    if (item.type?.startsWith('equipment_')) {
-      const rarity = item.rarity || item.metadata?.rarity || 'common';
-      const level = item.level || item.metadata?.level || 1;
-      const multipliers = { common: 1, uncommon: 2, rare: 5, epic: 10, legendary: 50, mythic: 100 };
-      const multiplier = multipliers[rarity] || 1;
-      return Math.floor(level * multiplier * 100);
-    }
-    return 0;
+  const selectedCount = useMemo(
+    () => Object.values(selectedItems).reduce((sum, qty) => sum + qty, 0),
+    [selectedItems]
+  );
+
+  const selectedTotalValue = useMemo(() => {
+    let total = 0;
+    inventory.forEach(item => {
+      const key = getItemKey(item);
+      const qty = selectedItems[key] || 0;
+      if (qty > 0) total += getSellPrice(item) * qty;
+    });
+    return total;
+  }, [inventory, selectedItems]);
+
+  const isAllSelected = useMemo(() => {
+    if (filteredItems.length === 0) return false;
+    return filteredItems.every(item => selectedItems[getItemKey(item)] === getMaxSellQuantity(item));
+  }, [filteredItems, selectedItems]);
+
+  const toggleSelection = (item) => {
+    const itemId = getItemKey(item);
+    const maxQty = getMaxSellQuantity(item);
+    if (!itemId) return;
+    setSelectedItems(prev => {
+      const next = { ...prev };
+      if (next[itemId]) {
+        delete next[itemId];
+      } else {
+        next[itemId] = Math.min(1, maxQty);
+      }
+      return next;
+    });
   };
 
-  const toggleSelection = (itemId) => {
-    const newSelected = new Set(selectedItems);
-    if (newSelected.has(itemId)) {
-      newSelected.delete(itemId);
-    } else {
-      newSelected.add(itemId);
-    }
-    setSelectedItems(newSelected);
+  const updateSelectionQuantity = (item, nextValue) => {
+    const itemId = getItemKey(item);
+    const maxQty = getMaxSellQuantity(item);
+    if (!itemId) return;
+    const qty = Math.max(1, Math.min(maxQty, Math.floor(Number(nextValue)) || 1));
+    setSelectedItems(prev => ({ ...prev, [itemId]: qty }));
   };
 
   const handleSellSelected = async () => {
-    if (selectedItems.size === 0 || selling) return;
-    let totalValue = 0;
-    inventory.forEach(item => {
-      if (selectedItems.has(item.itemId)) {
-        totalValue += getSellPrice(item);
-      }
-    });
+    if (selectedCount === 0 || selling) return;
 
-    if (!window.confirm(`Bạn có chắc muốn bán ${selectedItems.size} trang bị với giá ${totalValue.toLocaleString()} Linh Thạch?`)) {
+    if (!window.confirm(`Bạn có chắc muốn bán ${selectedCount} vật phẩm với giá ${selectedTotalValue.toLocaleString()} Linh Thạch?`)) {
       return;
     }
 
     setSelling(true);
     try {
-      await sellItems(Array.from(selectedItems));
-      setSelectedItems(new Set());
+      const itemsToSell = Object.entries(selectedItems).map(([itemId, quantity]) => ({
+        itemId,
+        quantity
+      }));
+      await sellItems(itemsToSell);
+      setSelectedItems({});
     } finally {
       setSelling(false);
     }
@@ -104,22 +126,29 @@ const MerchantTab = memo(function MerchantTab() {
       <div className="flex items-center justify-between bg-slate-900/50 p-3 rounded-xl border border-slate-800">
         <div className="flex flex-col">
           <h3 className="font-bold text-amber-500 font-title text-lg uppercase tracking-wide">Thương Nhân</h3>
-          <p className="text-xs text-slate-500">Thu mua trang bị không dùng</p>
+          <p className="text-xs text-slate-500">Thu mua vật phẩm dư thừa</p>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => {
-              if (selectedItems.size === filteredItems.length) setSelectedItems(new Set());
-              else setSelectedItems(new Set(filteredItems.map(i => i.itemId)));
+              if (isAllSelected) {
+                setSelectedItems({});
+              } else {
+                const nextSelected = {};
+                filteredItems.forEach(item => {
+                  nextSelected[getItemKey(item)] = getMaxSellQuantity(item);
+                });
+                setSelectedItems(nextSelected);
+              }
             }}
             className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded text-xs text-white transition-colors border border-slate-600"
           >
-            {selectedItems.size === filteredItems.length ? 'Bỏ chọn' : 'Chọn tất cả'}
+            {isAllSelected ? 'Bỏ chọn' : 'Chọn tất cả'}
           </button>
           <button
             onClick={handleSellSelected}
-            disabled={selectedItems.size === 0 || selling}
-            className={`px-3 py-1.5 sm:px-4 rounded text-xs sm:text-sm font-bold uppercase transition-all ${selectedItems.size > 0
+            disabled={selectedCount === 0 || selling}
+            className={`px-3 py-1.5 sm:px-4 rounded text-xs sm:text-sm font-bold uppercase transition-all ${selectedCount > 0
               ? 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white shadow-[0_0_15px_rgba(245,158,11,0.4)]'
               : 'bg-slate-700 text-slate-500 cursor-not-allowed'
               }`}
@@ -130,16 +159,11 @@ const MerchantTab = memo(function MerchantTab() {
       </div>
 
       {/* Stats Summary */}
-      {selectedItems.size > 0 && (
+      {selectedCount > 0 && (
         <div className="bg-amber-900/20 border border-amber-500/30 rounded-lg p-2 flex justify-between items-center px-4">
-          <span className="text-xs text-amber-200">Đã chọn: <b className="text-white">{selectedItems.size}</b> món</span>
+          <span className="text-xs text-amber-200">Đã chọn: <b className="text-white">{selectedCount}</b> món</span>
           <span className="text-sm font-bold text-amber-400">
-            Tổng: {
-              Array.from(selectedItems).reduce((sum, id) => {
-                const item = inventory.find(i => i.itemId === id);
-                return sum + (item ? getSellPrice(item) : 0);
-              }, 0).toLocaleString()
-            } Linh Thạch
+            Tổng: {selectedTotalValue.toLocaleString()} Linh Thạch
           </span>
         </div>
       )}
@@ -150,8 +174,8 @@ const MerchantTab = memo(function MerchantTab() {
           <svg xmlns="http://www.w3.org/2000/svg" className="h-12 w-12 mb-2 opacity-50" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M20 12H4" />
           </svg>
-          <p className="text-sm font-medium">Không có trang bị nào để bán</p>
-          <p className="text-xs opacity-60 mt-1">(Chỉ thu mua trang bị trong túi đồ, không bao gồm đồ đang mặc)</p>
+          <p className="text-sm font-medium">Không có vật phẩm nào để bán</p>
+          <p className="text-xs opacity-60 mt-1">(Chỉ thu mua vật phẩm trong túi đồ, không bao gồm đồ đang mặc)</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pb-20">
@@ -159,12 +183,15 @@ const MerchantTab = memo(function MerchantTab() {
             const rarityKey = item.rarity || item.metadata?.rarity || 'common';
             const rarity = RARITY_COLORS[rarityKey] || RARITY_COLORS.common;
             const ItemIcon = getItemIcon(item);
-            const isSelected = selectedItems.has(item.itemId);
+            const itemId = getItemKey(item);
+            const maxQty = getMaxSellQuantity(item);
+            const selectedQty = selectedItems[itemId] || 0;
+            const isSelected = selectedQty > 0;
 
             return (
               <div
-                key={item.itemId}
-                onClick={() => toggleSelection(item.itemId)}
+                key={itemId}
+                onClick={() => toggleSelection(item)}
                 className={`relative rounded-xl p-2.5 sm:p-3 flex justify-between items-center border transition-all cursor-pointer group select-none ${rarity.bg} ${rarity.border} ${isSelected ? 'ring-2 ring-amber-500 bg-amber-900/20' : 'hover:bg-slate-800/80 hover:scale-[1.01]'
                   }`}
                 onMouseEnter={(e) => handleMouseEnter(item, e)}
@@ -191,8 +218,56 @@ const MerchantTab = memo(function MerchantTab() {
                       <h4 className={`font-bold text-xs sm:text-sm truncate ${rarity.text}`}>{item.name}</h4>
                       <span className={`text-[9px] px-1 py-0.5 rounded ${rarity.bg} ${rarity.text} border ${rarity.border} flex-shrink-0`}>{rarity.label}</span>
                     </div>
-                    <div className="flex items-center gap-2 mt-1">
-                      <span className="text-[10px] text-amber-300 font-mono bg-amber-900/40 px-1.5 rounded">+{getSellPrice(item).toLocaleString()} Linh Thạch</span>
+                    <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                      <span className="text-[10px] text-amber-300 font-mono bg-amber-900/40 px-1 rounded">+{getSellPrice(item).toLocaleString()} Linh Thạch</span>
+                      {maxQty > 1 && (
+                        <div className={`flex items-center gap-0.5 bg-slate-900/50 p-0.5 rounded border border-slate-700/50 transition-all ${isSelected ? 'opacity-100' : 'opacity-50 grayscale pointer-events-none'}`}
+                          onClick={(e) => e.stopPropagation()}>
+
+                          <button
+                            disabled={!isSelected || selectedQty <= 1}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateSelectionQuantity(item, selectedQty - 1);
+                            }}
+                            className="w-4 h-4 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-600 text-amber-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <span className="text-xs font-bold leading-none mb-0.5">-</span>
+                          </button>
+
+                          <input
+                            type="number"
+                            min={1}
+                            max={maxQty}
+                            value={isSelected ? selectedQty : 1}
+                            disabled={!isSelected}
+                            onChange={(e) => updateSelectionQuantity(item, e.target.value)}
+                            className="w-7 h-4 bg-transparent text-center text-[10px] font-bold text-white focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                          />
+
+                          <button
+                            disabled={!isSelected || selectedQty >= maxQty}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateSelectionQuantity(item, selectedQty + 1);
+                            }}
+                            className="w-4 h-4 flex items-center justify-center rounded bg-slate-800 hover:bg-slate-700 active:bg-slate-900 border border-slate-600 text-amber-500 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          >
+                            <span className="text-xs font-bold leading-none mb-0.5">+</span>
+                          </button>
+
+                          <button
+                            disabled={!isSelected || selectedQty >= maxQty}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              updateSelectionQuantity(item, maxQty);
+                            }}
+                            className="h-4 px-1 flex items-center justify-center rounded bg-amber-900/30 hover:bg-amber-800/50 border border-amber-800/50 text-[8px] font-bold text-amber-500 uppercase tracking-widest disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                          >
+                            Max
+                          </button>
+                        </div>
+                      )}
                     </div>
                   </div>
                 </div>

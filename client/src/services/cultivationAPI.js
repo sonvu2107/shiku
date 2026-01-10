@@ -189,10 +189,14 @@ export async function attemptBreakthrough() {
 }
 
 // Sell Items
-export const sellItems = async (itemIds) => {
+export const sellItems = async (itemsOrIds) => {
+  const payload = Array.isArray(itemsOrIds) && itemsOrIds.length > 0 && typeof itemsOrIds[0] === 'object'
+    ? { items: itemsOrIds }
+    : { itemIds: itemsOrIds };
+
   return api('/api/cultivation/inventory/sell', {
     method: 'POST',
-    body: JSON.stringify({ itemIds })
+    body: JSON.stringify(payload)
   });
 };
 

@@ -559,16 +559,16 @@ export function CultivationProvider({ children }) {
   /**
    * Bán vật phẩm
    */
-  const sellItems = useCallback(async (itemIds) => {
+  const sellItems = useCallback(async (itemsOrIds) => {
     try {
       setError(null);
-      const response = await sellItemsAPI(itemIds);
+      const response = await sellItemsAPI(itemsOrIds);
 
       if (response.success) {
         setCultivation(prev => ({
           ...prev,
-          inventory: prev.inventory.filter(item => !itemIds.includes(item.itemId)),
-          spiritStones: (prev.spiritStones || 0) + response.data.totalValue
+          inventory: response.data.inventory || prev.inventory,
+          spiritStones: response.data.spiritStones ?? ((prev.spiritStones || 0) + response.data.totalValue)
         }));
 
         setNotification({

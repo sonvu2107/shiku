@@ -5,6 +5,7 @@ import { useState, useEffect, memo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useCultivation } from '../../../hooks/useCultivation.jsx';
 import { RARITY_COLORS, SHOP_ITEM_DATA, EQUIPMENT_SUBTYPES } from '../utils/constants.js';
+import { getSellPrice } from '../utils/sellPricing.js';
 import { getItemIcon, IMAGE_COMPONENTS, ITEM_TYPE_LABELS } from '../utils/iconHelpers.js';
 import LoadingSkeleton from './LoadingSkeleton.jsx';
 import ItemTooltip from './ItemTooltip.jsx';
@@ -475,20 +476,6 @@ const InventoryTab = memo(function InventoryTab() {
     return true;
   });
 
-  // Calculate sell price
-  const getSellPrice = (item) => {
-    if (item.type?.startsWith('equipment_')) {
-      const rarity = item.rarity || item.metadata?.rarity || 'common';
-      const level = item.level || item.metadata?.level || 1;
-      const multipliers = { common: 1, uncommon: 2, rare: 5, epic: 10, legendary: 50, mythic: 100 };
-      const multiplier = multipliers[rarity] || 1;
-      return Math.floor(level * multiplier * 10);
-    }
-    // Consumables typically low value
-    if (['exp_boost', 'consumable', 'material'].includes(item.type)) return 10;
-    return 0; // Unsellable
-  };
-
   // Handle item selection logic
   const toggleSelection = (itemId) => {
     const newSelected = new Set(selectedItems);
@@ -507,19 +494,24 @@ const InventoryTab = memo(function InventoryTab() {
     // Confirm dialog (simple alert for now or custom modal)
     // Calculate total value
     let totalValue = 0;
+    let totalQty = 0;
+    const itemsToSell = [];
     inventory.forEach(item => {
       if (selectedItems.has(item.itemId)) {
-        totalValue += getSellPrice(item);
+        const qty = item.type?.startsWith('equipment_') ? 1 : Math.max(1, Math.floor(Number(item.quantity)) || 1);
+        itemsToSell.push({ itemId: item.itemId, quantity: qty });
+        totalValue += getSellPrice(item) * qty;
+        totalQty += qty;
       }
     });
 
-    if (!window.confirm(`Bạn có chắc muốn bán ${selectedItems.size} món đồ với giá ${totalValue.toLocaleString()} Linh Thạch?`)) {
+    if (!window.confirm(`Bạn có chắc muốn bán ${totalQty} món đồ với giá ${totalValue.toLocaleString()} Linh Thạch?`)) {
       return;
     }
 
     setSelling(true);
     try {
-      await sellItems(Array.from(selectedItems));
+      await sellItems(itemsToSell);
       setSelectedItems(new Set()); // Clear selection
     } finally {
       setSelling(false);

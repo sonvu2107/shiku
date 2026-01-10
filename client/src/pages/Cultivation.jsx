@@ -505,10 +505,10 @@ const CultivationContent = memo(function CultivationContent() {
                   animate={{ x: 0 }}
                   exit={{ x: '100%' }}
                   transition={{ type: 'tween', duration: 0.2, ease: 'easeOut' }}
-                  className="sm:hidden fixed top-0 right-0 h-full w-1/2 bg-[#0a0a1a] border-l border-purple-500/30 z-50"
+                  className="sm:hidden fixed top-0 right-0 h-full w-1/2 bg-[#0a0a1a] border-l border-purple-500/30 z-50 flex flex-col"
                 >
                   {/* Menu Header */}
-                  <div className="flex items-center justify-between px-5 py-4 border-b border-purple-500/20">
+                  <div className="flex items-center justify-between px-5 py-4 border-b border-purple-500/20 flex-shrink-0">
                     <span className="text-amber-400 font-title text-lg tracking-widest">MENU</span>
                     <button
                       onClick={() => setMobileMenuOpen(false)}
@@ -519,7 +519,7 @@ const CultivationContent = memo(function CultivationContent() {
                   </div>
 
                   {/* Menu Items */}
-                  <div className="py-3 px-2">
+                  <div className="flex-1 overflow-y-auto py-2 px-2 custom-scrollbar">
                     {tabs.map((tab) => (
                       <button
                         key={tab.id}
@@ -527,7 +527,7 @@ const CultivationContent = memo(function CultivationContent() {
                           setActiveTab(tab.id);
                           setMobileMenuOpen(false);
                         }}
-                        className={`w-full px-4 py-3 mb-1 text-left text-sm font-bold uppercase tracking-wide rounded-lg transition-all ${activeTab === tab.id
+                        className={`w-full px-4 py-2.5 mb-1 text-left text-sm font-bold uppercase tracking-wide rounded-lg transition-all ${activeTab === tab.id
                           ? 'bg-purple-900/60 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.2)]'
                           : 'text-slate-400 active:bg-slate-800/50'
                           }`}
@@ -535,6 +535,7 @@ const CultivationContent = memo(function CultivationContent() {
                         {tab.label}
                       </button>
                     ))}
+                    <div className="h-20 sm:hidden"></div> {/* Extra spacer for mobile bottom bars */}
                   </div>
                 </motion.div>
               </>

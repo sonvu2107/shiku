@@ -144,39 +144,39 @@ const IdentityHeader = memo(function IdentityHeader({ cultivation, currentRealm 
                 <div className="grid grid-cols-2 gap-2 text-xs">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Tốc Độ:</span>
-                    <span className="text-cyan-300 font-mono font-bold">{stats.speed}</span>
+                    <span className="text-cyan-300 font-mono font-bold">{Math.round(stats.speed || 0).toLocaleString()}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Chí Mạng:</span>
-                    <span className="text-purple-300 font-mono font-bold">{stats.criticalRate}%</span>
+                    <span className="text-purple-300 font-mono font-bold">{Math.round(stats.criticalRate || 0)}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Sát Thương Chí Mạng:</span>
-                    <span className="text-red-300 font-mono font-bold">{stats.criticalDamage}%</span>
+                    <span className="text-red-300 font-mono font-bold">{Math.round(stats.criticalDamage || 0)}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Chính Xác:</span>
-                    <span className="text-blue-300 font-mono font-bold">{stats.accuracy}%</span>
+                    <span className="text-blue-300 font-mono font-bold">{Math.round(stats.accuracy || 0)}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Né Tránh:</span>
-                    <span className="text-green-300 font-mono font-bold">{stats.dodge}%</span>
+                    <span className="text-green-300 font-mono font-bold">{Math.round(stats.dodge || 0)}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Xuyên Thấu:</span>
-                    <span className="text-orange-300 font-mono font-bold">{stats.penetration}</span>
+                    <span className="text-orange-300 font-mono font-bold">{Math.round(stats.penetration || 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Kháng Cự:</span>
-                    <span className="text-yellow-300 font-mono font-bold">{stats.resistance}</span>
+                    <span className="text-yellow-300 font-mono font-bold">{Math.round(stats.resistance || 0)}</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Hấp Huyết:</span>
-                    <span className="text-pink-300 font-mono font-bold">{stats.lifesteal}%</span>
+                    <span className="text-pink-300 font-mono font-bold">{Math.round(stats.lifesteal || 0)}%</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Hồi Phục:</span>
-                    <span className="text-teal-300 font-mono font-bold">{stats.regeneration}/s</span>
+                    <span className="text-teal-300 font-mono font-bold">{Math.round(stats.regeneration || 0)}/s</span>
                   </div>
                   <div className="flex justify-between">
                     <span className="text-slate-400">Vận Khí:</span>

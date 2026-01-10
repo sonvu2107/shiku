@@ -5,7 +5,7 @@ import Equipment from "../models/Equipment.js";
 import User from "../models/User.js";
 import Notification from "../models/Notification.js";
 import { authRequired } from "../middleware/jwtSecurity.js";
-import { PK_BOTS, BOT_BATTLE_COOLDOWN, getBotsByRealmLevel, getBotById } from "../data/pkBots.js";
+import { PK_BOTS, BOT_BATTLE_COOLDOWN, getBotsByRealmLevel, getBotById, calculateBotStats } from "../data/pkBots.js";
 import { logPKOverkillEvent } from "../controllers/cultivation/worldEventController.js";
 import { getTierBySubLevel, applyDebuffEffects } from "../data/tierConfig.js";
 import { reduceDurability } from "../services/modifierService.js";
@@ -1202,31 +1202,8 @@ router.post("/challenge/bot", async (req, res, next) => {
       damageReduction: challengerTier.privileges.damageReductionVsHigher || 0
     } : null;
 
-    // Tính combat stats của bot (base stats * statMultiplier)
-    const botRealm = CULTIVATION_REALMS.find(r => r.level === bot.realmLevel) || CULTIVATION_REALMS[0];
-    const baseStatsByRealm = {
-      1: { attack: 10, defense: 5, qiBlood: 100, zhenYuan: 50, speed: 10, criticalRate: 5, criticalDamage: 150, accuracy: 80, dodge: 5, penetration: 0, resistance: 0, lifesteal: 0, regeneration: 0.5, luck: 5 },
-      2: { attack: 25, defense: 12, qiBlood: 250, zhenYuan: 120, speed: 15, criticalRate: 8, criticalDamage: 160, accuracy: 85, dodge: 8, penetration: 2, resistance: 2, lifesteal: 1, regeneration: 1, luck: 8 },
-      3: { attack: 50, defense: 25, qiBlood: 500, zhenYuan: 250, speed: 20, criticalRate: 10, criticalDamage: 170, accuracy: 88, dodge: 10, penetration: 5, resistance: 5, lifesteal: 2, regeneration: 1.5, luck: 10 },
-      4: { attack: 100, defense: 50, qiBlood: 1000, zhenYuan: 500, speed: 25, criticalRate: 12, criticalDamage: 180, accuracy: 90, dodge: 12, penetration: 8, resistance: 8, lifesteal: 3, regeneration: 2, luck: 12 },
-      5: { attack: 200, defense: 100, qiBlood: 2000, zhenYuan: 1000, speed: 30, criticalRate: 15, criticalDamage: 190, accuracy: 92, dodge: 15, penetration: 12, resistance: 12, lifesteal: 5, regeneration: 3, luck: 15 },
-      6: { attack: 400, defense: 200, qiBlood: 4000, zhenYuan: 2000, speed: 35, criticalRate: 18, criticalDamage: 200, accuracy: 94, dodge: 18, penetration: 15, resistance: 15, lifesteal: 7, regeneration: 4, luck: 18 },
-      7: { attack: 800, defense: 400, qiBlood: 8000, zhenYuan: 4000, speed: 40, criticalRate: 20, criticalDamage: 210, accuracy: 96, dodge: 20, penetration: 18, resistance: 18, lifesteal: 10, regeneration: 5, luck: 20 },
-      8: { attack: 1600, defense: 800, qiBlood: 16000, zhenYuan: 8000, speed: 45, criticalRate: 22, criticalDamage: 220, accuracy: 97, dodge: 22, penetration: 20, resistance: 20, lifesteal: 12, regeneration: 6, luck: 22 },
-      9: { attack: 3200, defense: 1600, qiBlood: 32000, zhenYuan: 16000, speed: 50, criticalRate: 25, criticalDamage: 230, accuracy: 98, dodge: 25, penetration: 22, resistance: 22, lifesteal: 15, regeneration: 7, luck: 25 },
-      10: { attack: 6400, defense: 3200, qiBlood: 64000, zhenYuan: 32000, speed: 55, criticalRate: 28, criticalDamage: 240, accuracy: 99, dodge: 28, penetration: 25, resistance: 25, lifesteal: 18, regeneration: 8, luck: 28 },
-      11: { attack: 12800, defense: 6400, qiBlood: 128000, zhenYuan: 64000, speed: 60, criticalRate: 30, criticalDamage: 250, accuracy: 99, dodge: 30, penetration: 28, resistance: 28, lifesteal: 20, regeneration: 9, luck: 30 },
-      12: { attack: 25600, defense: 12800, qiBlood: 256000, zhenYuan: 128000, speed: 65, criticalRate: 32, criticalDamage: 270, accuracy: 100, dodge: 32, penetration: 30, resistance: 30, lifesteal: 10, regeneration: 2, luck: 32 },
-      13: { attack: 51200, defense: 25600, qiBlood: 512000, zhenYuan: 256000, speed: 70, criticalRate: 35, criticalDamage: 290, accuracy: 100, dodge: 35, penetration: 32, resistance: 32, lifesteal: 12, regeneration: 2, luck: 35 },
-      14: { attack: 102400, defense: 51200, qiBlood: 1024000, zhenYuan: 512000, speed: 80, criticalRate: 40, criticalDamage: 350, accuracy: 100, dodge: 40, penetration: 35, resistance: 35, lifesteal: 15, regeneration: 2, luck: 40 }
-    };
-
-    const baseStats = baseStatsByRealm[bot.realmLevel] || baseStatsByRealm[1];
-    const opponentStats = {};
-    for (const [key, value] of Object.entries(baseStats)) {
-      // Nhân stats theo statMultiplier
-      opponentStats[key] = Math.floor(value * bot.statMultiplier);
-    }
+    // Tính toán stats cho bot dựa trên realm level
+    const opponentStats = calculateBotStats(bot);
     opponentStats.realmLevel = bot.realmLevel;
     opponentStats.realmName = bot.realmName;
 
