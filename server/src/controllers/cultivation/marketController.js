@@ -1,11 +1,12 @@
 import Cultivation, { SHOP_ITEMS_MAP } from "../../models/Cultivation.js";
 import { saveWithRetry } from "../../utils/dbUtils.js";
 
-const EQUIPMENT_SELL_MIN = 0.5;
-const EQUIPMENT_SELL_MAX = 0.7;
+const EQUIPMENT_SELL_MIN = 0.25;
+const EQUIPMENT_SELL_MAX = 0.4;
 const NON_EQUIPMENT_SELL_RATE = 0.5;
 const FALLBACK_STACKABLE_PRICE = 10;
-const PRICE_MULTIPLIER = 5;
+const PRICE_MULTIPLIER = 1.5;
+const MAX_EQUIPMENT_SELL_PRICE = 25000; // Giới hạn giá bán tối đa cho trang bị
 const PERCENT_WEIGHT = 300;
 const HP_DIVISOR = 5;
 const SPEED_WEIGHT = 2;
@@ -141,7 +142,8 @@ const calculateSellPriceV2 = (item) => {
     if (item.type && item.type.startsWith("equipment_")) {
         const basePrice = calculateEquipmentBasePrice(item);
         if (basePrice <= 0) return 0;
-        return Math.floor(basePrice * getEquipmentSellRatio(item));
+        const sellPrice = Math.floor(basePrice * getEquipmentSellRatio(item));
+        return Math.min(sellPrice, MAX_EQUIPMENT_SELL_PRICE); // Giới hạn tối đa 40k
     }
 
     const basePrice = getNonEquipmentBasePrice(item);
